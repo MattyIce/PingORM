@@ -18,32 +18,6 @@ namespace PingORM
 
         static DataMapper()
         {
-            foreach (ConnectionElement connectionElement in ConnectionSettings.Current.Connections)
-                DataMapper.Initialize(Assembly.Load(connectionElement.MappingsAssembly));
-        }
-
-        /// <summary>
-        /// Initialize the data mappings.
-        /// </summary>
-        /// <param name="assembly"></param>
-        public static void Initialize(Assembly assembly)
-        {
-            // Find all of the classes that are tagged with a DataEntityAttribute.
-            foreach (Type type in assembly.GetTypes().Where(t => !_mappings.ContainsKey(t)))
-            {
-                object[] attributes = type.GetCustomAttributes(typeof(DataEntityAttribute), false);
-                if (attributes.Length > 0)
-                {
-                    DataEntityAttribute attribute = attributes[0] as DataEntityAttribute;
-
-                    if (attribute == null || String.IsNullOrEmpty(attribute.TableName))
-                        continue;
-
-                    TableMapping mapping = new TableMapping(attribute, type);
-                    _mappings.Add(type, mapping);
-                }
-            }
-
             // Find any XML mappings.
             if (DataMappingSettings.Current != null)
             {
@@ -57,6 +31,29 @@ namespace PingORM
                     TableMapping mapping = new TableMapping(tableMapping);
                     _mappings.Add(type, mapping);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Load the mappings attributes for the specified type.
+        /// </summary>
+        /// <param name="assembly"></param>
+        static void LoadMappings(Type type)
+        {
+            // Check if this mapping has already been loaded.
+            if (_mappings.ContainsKey(type))
+                return;
+
+            object[] attributes = type.GetCustomAttributes(typeof(DataEntityAttribute), false);
+            if (attributes.Length > 0)
+            {
+                DataEntityAttribute attribute = attributes[0] as DataEntityAttribute;
+
+                if (attribute == null || String.IsNullOrEmpty(attribute.TableName))
+                    throw new Exception(String.Format("Cannot load mappings for type [{0}].", type.FullName));
+
+                TableMapping mapping = new TableMapping(attribute, type);
+                _mappings.Add(type, mapping);
             }
         }
 
@@ -95,9 +92,8 @@ namespace PingORM
         /// <returns></returns>
         public static object Get(Type type, ISession session, object id, object partitionKey)
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(type))
-                return null;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(type);
 
             try
             {
@@ -151,9 +147,8 @@ namespace PingORM
         /// <returns></returns>
         public static object GetId<T>(T entity)
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(typeof(T)))
-                return null;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(typeof(T));
 
             TableMapping mapping = _mappings[typeof(T)];
             
@@ -204,9 +199,8 @@ namespace PingORM
         /// <returns></returns>
         public static IEnumerator<T> Select<T>(ISession session, QueryBuilder<T> query) where T : class, new()
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(typeof(T)))
-                yield break;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(typeof(T));
 
             NpgsqlCommand selectCommand = new NpgsqlCommand(query.ToString(), (NpgsqlConnection)session.Connection);
 
@@ -236,9 +230,8 @@ namespace PingORM
         /// <returns></returns>
         public static object SelectScalar<T>(ISession session, QueryBuilder<T> query) where T : class, new()
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(typeof(T)))
-                return null;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(typeof(T));
 
             try
             {
@@ -266,9 +259,8 @@ namespace PingORM
         /// <returns></returns>
         public static int Insert(ISession session, object entity)
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(entity.GetType()))
-                return 0;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(entity.GetType());
 
             try
             {
@@ -305,9 +297,8 @@ namespace PingORM
         /// <returns></returns>
         public static int NonQuery<T>(ISession session, QueryBuilder<T> query) where T : class, new()
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(typeof(T)))
-                return 0;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(typeof(T));
 
             try
             {
@@ -335,9 +326,8 @@ namespace PingORM
         /// <returns></returns>
         public static int Update(ISession session, object entity)
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(entity.GetType()))
-                return 0;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(entity.GetType());
 
             try
             {
@@ -364,9 +354,8 @@ namespace PingORM
         /// <returns></returns>
         public static int Delete(ISession session, object entity)
         {
-            // Make sure the entity object is a mapped type.
-            if (!_mappings.ContainsKey(entity.GetType()))
-                return 0;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(entity.GetType());
 
             try
             {
@@ -459,7 +448,10 @@ namespace PingORM
         /// <returns></returns>
         public static TableMapping GetTableMapping(Type type)
         {
-            return _mappings.ContainsKey(type) ? _mappings[type] : null;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(type);
+
+            return _mappings[type];
         }
 
         /// <summary>
@@ -470,8 +462,8 @@ namespace PingORM
         /// <returns></returns>
         public static ColumnMapping GetColumnMapping(Type type, string propertyName)
         {
-            if (!_mappings.ContainsKey(type))
-                return null;
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(type);
 
             return _mappings[type].Columns.FirstOrDefault(c => c.PropertyName == propertyName);
         }

@@ -63,16 +63,6 @@ namespace PingORM.Configuration
         }
 
         /// <summary>
-        /// The name of the assembly containing the data entity and mappings.
-        /// </summary>
-        [ConfigurationProperty("mappingsAssembly", IsRequired = true)]
-        public string MappingsAssembly
-        {
-            get { return (string)this["mappingsAssembly"]; }
-            set { this["mappingsAssembly"] = value; }
-        }
-
-        /// <summary>
         /// The name of the assembly containing the custom data adapters.
         /// </summary>
         [ConfigurationProperty("adaptersAssembly", IsRequired = false)]
