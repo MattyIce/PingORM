@@ -37,17 +37,16 @@ namespace PingORM
             return this.GetEnumerator();
         }
 
-        public virtual QueryBuilder<T> Increment<TKey>(Expression<Func<T, TKey>> predicate)
+        public virtual QueryBuilder<T> Update<TKey>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TKey>> expr)
         {
             this.isUpdate = true;
 
             if (this.UpdateStr.Length > 0)
                 this.UpdateStr.Append(", ");
 
-            this.Visit(predicate, UpdateStr);
+            this.UpdateStr.Append(String.Format("\"{0}\" = ", DataMapper.GetColumnName(typeof(T), ((MemberExpression)keySelector.Body).Member.Name)));
 
-            //string paramName = String.Format(":u{0}", Parameters.Count);
-            //this.UpdateStr.Append(String.Format("\"{0}\" = \"{0}\" + {1}", DataMapper.GetColumnName(typeof(T), ((MemberExpression)keySelector.Body).Member.Name), amount));
+            this.Visit(expr, this.UpdateStr);
 
             return this;
         }
@@ -330,6 +329,12 @@ namespace PingORM
                     break;
                 case ExpressionType.Multiply:
                     sb.Append(" * ");
+                    break;
+                case ExpressionType.Add:
+                    sb.Append(" + ");
+                    break;
+                case ExpressionType.Subtract:
+                    sb.Append(" - ");
                     break;
                 default:
                     throw new NotSupportedException(string.Format("The binary operator '{0}' is not supported", b.NodeType));

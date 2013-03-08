@@ -15,6 +15,12 @@ namespace PingORM
         static log4net.ILog SqlLog = log4net.LogManager.GetLogger("SQL");
         private static Dictionary<Type, TableMapping> _mappings = new Dictionary<Type, TableMapping>();
 
+        static DataMapper()
+        {
+            foreach (ConnectionElement connectionElement in ConnectionSettings.Current.Connections)
+                DataMapper.Initialize(Assembly.Load(connectionElement.MappingsAssembly));
+        }
+
         /// <summary>
         /// Initialize the data mappings.
         /// </summary>

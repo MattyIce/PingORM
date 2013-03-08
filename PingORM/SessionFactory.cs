@@ -28,9 +28,6 @@ namespace PingORM
         /// <param name="sessionStorage"></param>
         public static void Initialize(IKeyStorage<ISession> sessionStorage)
         {
-            foreach (ConnectionElement connectionElement in ConnectionSettings.Current.Connections)
-                DataMapper.Initialize(Assembly.Load(connectionElement.MappingsAssembly));
-
             SetSessionStorage(sessionStorage);
         }
 
