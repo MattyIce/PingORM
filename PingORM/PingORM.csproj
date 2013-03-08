@@ -39,6 +39,10 @@
     <Reference Include="Npgsql">
       <HintPath>..\packages\Npgsql.2.0.12.1\lib\net40\Npgsql.dll</HintPath>
     </Reference>
+    <Reference Include="nunit.framework, Version=2.6.2.12296, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="policy.2.0.Npgsql">
       <HintPath>..\packages\Npgsql.2.0.12.1\lib\net40\policy.2.0.Npgsql.dll</HintPath>
     </Reference>
@@ -54,26 +58,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ColumnAttribute.cs" />
-    <Compile Include="ConnectionSettings.cs" />
-    <Compile Include="DataEntityAttribute.cs" />
-    <Compile Include="DataEntityBase.cs" />
+    <Compile Include="Configuration\ColumnAttribute.cs" />
+    <Compile Include="Configuration\ConnectionSettings.cs" />
+    <Compile Include="Configuration\DataEntityAttribute.cs" />
     <Compile Include="DataMapper.cs" />
-    <Compile Include="DataMappings.cs" />
+    <Compile Include="Configuration\DataMappings.cs" />
     <Compile Include="DataSession.cs" />
-    <Compile Include="DateTimeConvertor.cs" />
     <Compile Include="EntityAdapter.cs" />
-    <Compile Include="EntityAdapterAttribute.cs" />
-    <Compile Include="IDataEntity.cs" />
+    <Compile Include="Configuration\EntityAdapterAttribute.cs" />
     <Compile Include="IEntityTracker.cs" />
     <Compile Include="IEntityUpdater.cs" />
-    <Compile Include="IKeyStorage.cs" />
+    <Compile Include="UnitTests\EntityTests.cs" />
+    <Compile Include="UnitTests\TestEntityAdapter.cs" />
+    <Compile Include="UnitTests\TestEntityTracker.cs" />
+    <Compile Include="UnitTests\TestFixtureBase.cs" />
+    <Compile Include="Utilities\IKeyStorage.cs" />
     <Compile Include="ISession.cs" />
-    <Compile Include="IStorage.cs" />
+    <Compile Include="Utilities\IStorage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueryBuilder.cs" />
     <Compile Include="SessionFactory.cs" />
-    <Compile Include="SettingsBase.cs" />
+    <Compile Include="Configuration\SettingsBase.cs" />
     <Compile Include="Transaction.cs" />
   </ItemGroup>
   <ItemGroup>

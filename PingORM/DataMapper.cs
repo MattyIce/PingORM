@@ -6,6 +6,7 @@ using Npgsql;
 using System.Reflection;
 using System.Data;
 using NpgsqlTypes;
+using PingORM.Configuration;
 
 namespace PingORM
 {
@@ -140,6 +141,30 @@ namespace PingORM
             catch (Exception ex) { Log.Error("DataMapper.Get threw an exception.", ex); }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the identifier of the specified entity based upon the Primary Key defined in the mapping.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static object GetId<T>(T entity)
+        {
+            // Make sure the entity object is a mapped type.
+            if (!_mappings.ContainsKey(typeof(T)))
+                return null;
+
+            TableMapping mapping = _mappings[typeof(T)];
+            
+            // Get the primary key column(s).
+            List<ColumnMapping> idColumns = mapping.Columns.Where(c => c.IsPk).ToList();
+
+            // Check if we have multiple PKs or just one.
+            if (idColumns.Count == 1)
+                return idColumns[0].PropertyInfo.GetValue(entity);
+            else
+                throw new NotSupportedException("Getting the Id of a multi-column PK object is not supported in this version.");
         }
 
         /// <summary>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace PingORM
+namespace PingORM.Utilities
 {
     /// <summary>
     /// Interface for a class that stores an item.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace PingORM
+namespace PingORM.Configuration
 {
     /// <summary>
     /// Specifies that a class is a data entity.

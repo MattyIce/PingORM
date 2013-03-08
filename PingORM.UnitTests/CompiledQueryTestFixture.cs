@@ -24,7 +24,7 @@ namespace PingORM.UnitTests
             Assert.AreEqual(1, users.Count);
         }
 
-        public static Func<int, int, QueryBuilder<User>> test = QueryBuilder<User>.Compile<int, int>(
+        public static Func<long, int, QueryBuilder<User>> test = QueryBuilder<User>.Compile<long, int>(
             (id, amount) => EntityAdapter.Query<User>()
                 .Where(p => p.Id == id)
                 .Update(p => p.NumLogins, p => p.NumLogins + amount));
@@ -32,13 +32,12 @@ namespace PingORM.UnitTests
         [Test]
         public void UpdateTest()
         {
-            User user = EntityAdapter.Get<User>(1);
-            int numLogins = user.NumLogins;
+            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 });
 
-            int count = test(1, 4).ExecuteNonQuery();
+            int count = test(user.Id, 4).ExecuteNonQuery();
 
             Assert.AreEqual(1, count);
-            Assert.AreEqual(numLogins + 4, EntityAdapter.Get<User>(1).NumLogins);
+            Assert.AreEqual(user.NumLogins + 4, EntityAdapter.Get<User>(user.Id).NumLogins);
         }
     }
 }

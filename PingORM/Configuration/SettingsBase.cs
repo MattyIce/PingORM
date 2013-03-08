@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Configuration;
 
-namespace PingORM
+namespace PingORM.Configuration
 {
     /// <summary>
     /// Base class for all configuration settings objects.
@@ -25,7 +25,7 @@ namespace PingORM
                     try
                     {
                         ExeConfigurationFileMap fileMap = new ExeConfigurationFileMap() { ExeConfigFilename = GetSettingsFileLocation() };
-                        Configuration config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
+                        System.Configuration.Configuration config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
                         _current = config.GetSection(GetSettingsSectionName()) as T;
                     }
                     catch (Exception ex) { Log.Error(String.Format("Error loading settings of type [{0}].", typeof(T).Name), ex); }

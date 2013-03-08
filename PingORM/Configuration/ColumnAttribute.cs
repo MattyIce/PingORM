@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data.Linq.Mapping;
 
-namespace PingORM
+namespace PingORM.Configuration
 {
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
     public class ColumnAttribute : DataAttribute

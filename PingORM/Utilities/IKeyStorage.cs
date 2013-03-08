@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Web;
 
-namespace PingORM
+namespace PingORM.Utilities
 {
     /// <summary>
     /// Interface for a class that stores an NHibernate session.

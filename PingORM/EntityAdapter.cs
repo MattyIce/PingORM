@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using PingORM.Configuration;
 
 namespace PingORM
 {
@@ -295,7 +296,7 @@ namespace PingORM
         /// </summary>
         /// <typeparam name="ENTITY"></typeparam>
         /// <returns></returns>
-        public static EntityAdapter<ENTITY> GetAdapter<ENTITY>() where ENTITY : class, new()
+        protected static EntityAdapter<ENTITY> GetAdapter<ENTITY>() where ENTITY : class, new()
         {
             // Return the adapter registered for the specified type, or the default adapter if none is registered.
             return _adapters.ContainsKey(typeof(ENTITY)) ? _adapters[typeof(ENTITY)] as EntityAdapter<ENTITY> : new EntityAdapter<ENTITY>();
@@ -306,7 +307,7 @@ namespace PingORM
         /// </summary>
         /// <typeparam name="ENTITY"></typeparam>
         /// <returns></returns>
-        public static IEntityUpdater<ENTITY> GetUpdater<ENTITY>() where ENTITY : class, new()
+        protected static IEntityUpdater<ENTITY> GetUpdater<ENTITY>() where ENTITY : class, new()
         {
             // Return the adapter registered for the specified type, or the default adapter if none is registered.
             return _adapters.ContainsKey(typeof(ENTITY)) ? _adapters[typeof(ENTITY)] as IEntityUpdater<ENTITY> : new EntityAdapter<ENTITY>();
