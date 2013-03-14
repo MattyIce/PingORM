@@ -212,10 +212,45 @@ namespace PingORM
         /// <returns></returns>
         protected QueryBuilder<T> ReplaceParameter(string name, object value)
         {
-            string paramName = String.Format(":p{0}", name);
+            if (value is IEnumerable)
+            {
+                StringBuilder sb = new StringBuilder();
+                int i = 0;
+                foreach (object val in (IEnumerable)value)
+                {
+                    string paramName = String.Format(":p{0}{1}", name, i++);
 
-            if (Parameters.ContainsKey(paramName))
-                Parameters[paramName] = value;
+                    if (i > 1)
+                        sb.Append(",");
+
+                    sb.Append(paramName);
+
+                    // Add or replace the new parameter.
+                    if (Parameters.ContainsKey(paramName))
+                        Parameters[paramName] = val;
+                    else
+                        Parameters.Add(paramName, val);
+                }
+
+                string baseParamName = String.Format(":p{0}", name);
+
+                if (Parameters.ContainsKey(baseParamName))
+                {
+                    // Replace the single parameter in the WHERE and UPDATE clauses with the parameter list.
+                    this.WhereStr.Replace(baseParamName, sb.ToString());
+                    this.UpdateStr.Replace(baseParamName, sb.ToString());
+
+                    // Remove the single placeholder parameter.
+                    Parameters.Remove(baseParamName);
+                }
+            }
+            else
+            {
+                string paramName = String.Format(":p{0}", name);
+
+                if (Parameters.ContainsKey(paramName))
+                    Parameters[paramName] = value;
+            }
 
             return this;
         }
@@ -269,10 +304,30 @@ namespace PingORM
                 case ExpressionType.Lambda:
                     return this.VisitLambda((LambdaExpression)exp, sb);
                 case ExpressionType.Call:
-                    this.VisitConstant(Expression.Constant(Expression.Lambda(exp).Compile().DynamicInvoke(null)), sb);
-                    return exp;
+                    return this.VisitMethodCall((MethodCallExpression)exp, sb);
+                case ExpressionType.NewArrayInit:
+                case ExpressionType.ListInit:
+                    return this.VisitConstant(Expression.Constant(Expression.Lambda(exp).Compile().DynamicInvoke(null)), sb);
                 default:
                     throw new Exception(string.Format("Unhandled expression type: '{0}'", exp.NodeType));
+            }
+        }
+
+        protected virtual Expression VisitMethodCall(MethodCallExpression exp, StringBuilder sb)
+        {
+            switch (exp.Method.Name)
+            {
+                case "Contains":
+                    this.Visit((exp.Object == null) ? exp.Arguments[1] : exp.Arguments[0], sb);
+                    sb.Append(" IN ");
+                    this.Visit((exp.Object == null) ? exp.Arguments[0] : exp.Object, sb);
+                    return exp;
+                default:
+                    try
+                    {
+                        return this.VisitConstant(Expression.Constant(Expression.Lambda(exp).Compile().DynamicInvoke(null)), sb);
+                    }
+                    catch (Exception e) { throw new NotSupportedException(String.Format("The method [{0}] is not supported.", exp.Method.Name)); }
             }
         }
 
@@ -346,9 +401,28 @@ namespace PingORM
 
         protected virtual Expression VisitConstant(ConstantExpression c, StringBuilder sb)
         {
-            string paramName = String.Format(":c{0}", Parameters.Count);
-            sb.Append(paramName);
-            Parameters.Add(paramName, c.Value);
+            if (c.Value is IEnumerable)
+            {
+                sb.Append("(");
+                int i = 0;
+                foreach (object val in (IEnumerable)c.Value)
+                {
+                    string paramName = String.Format(":c{0}", Parameters.Count);
+
+                    if (i++ > 0)
+                        sb.Append(",");
+
+                    sb.Append(paramName);
+                    Parameters.Add(paramName, val);
+                }
+                sb.Append(")");
+            }
+            else
+            {
+                string paramName = String.Format(":c{0}", Parameters.Count);
+                sb.Append(paramName);
+                Parameters.Add(paramName, c.Value);
+            }
             return c;
         }
 
@@ -366,9 +440,35 @@ namespace PingORM
                     sb.Append(String.Format("\"{0}\"", DataMapper.GetColumnName(typeof(T), m.Member.Name)));
                     break;
                 case ExpressionType.Constant:
-                    string paramName = String.Format(":p{0}", m.Member.Name);
-                    sb.Append(paramName);
-                    Parameters.Add(paramName, ((FieldInfo)m.Member).GetValue(((ConstantExpression)m.Expression).Value));
+                    object value = ((FieldInfo)m.Member).GetValue(((ConstantExpression)m.Expression).Value);
+                    bool isEnumerable = typeof(IEnumerable).IsAssignableFrom(((FieldInfo)m.Member).FieldType);
+
+                    if(isEnumerable)
+                        sb.Append("(");
+
+                    if (isEnumerable && value != null)
+                    {
+                        int i = 0;
+                        foreach (object val in (IEnumerable)value)
+                        {
+                            string paramName = String.Format(":p{0}{1}", m.Member.Name, i++);
+
+                            if (i > 1)
+                                sb.Append(",");
+
+                            sb.Append(paramName);
+                            Parameters.Add(paramName, val);
+                        }
+                    }
+                    else
+                    {
+                        string paramName = String.Format(":p{0}", m.Member.Name);
+                        sb.Append(paramName);
+                        Parameters.Add(paramName, value);
+                    }
+
+                    if (isEnumerable)
+                        sb.Append(")");
                     break;
                 case ExpressionType.MemberAccess:
                     this.VisitConstant(Expression.Constant(Expression.Lambda(m).Compile().DynamicInvoke(null)), sb);
