@@ -207,8 +207,8 @@ namespace PingORM
             if (query.Parameters != null)
             {
                 // Add the parameters from the query builder.
-                foreach (KeyValuePair<string, object> parameter in query.Parameters)
-                    selectCommand.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.GetType()))).Value = parameter.Value;
+                foreach (var parameter in query.Parameters)
+                    selectCommand.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()))).Value = parameter.Value.Value;
             }
 
             List<T> results = new List<T>();
@@ -240,8 +240,8 @@ namespace PingORM
                 if (query.Parameters != null)
                 {
                     // Add the parameters from the query builder.
-                    foreach (KeyValuePair<string, object> parameter in query.Parameters)
-                        selectCommand.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.GetType()))).Value = parameter.Value;
+                    foreach (var parameter in query.Parameters)
+                        selectCommand.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()))).Value = parameter.Value.Value;
                 }
 
                 LogCommand(selectCommand);
@@ -307,8 +307,8 @@ namespace PingORM
                 if (query.Parameters != null)
                 {
                     // Add the parameters from the query builder.
-                    foreach (KeyValuePair<string, object> parameter in query.Parameters)
-                        command.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.GetType()))).Value = parameter.Value;
+                    foreach (var parameter in query.Parameters)
+                        command.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()))).Value = parameter.Value.Value;
                 }
 
                 LogCommand(command);

@@ -46,7 +46,7 @@ namespace PingORM.UnitTests
                 log4net.Config.XmlConfigurator.Configure();
                 Log.Debug("Start Logging");
 
-                // Fluently create the session factory using the connection data in the configuration file.
+                // Create the session factory using the connection data in the configuration file.
                 SessionFactory.Initialize();
 
                 // Set the hierarchy of the entities in the entity tracker.

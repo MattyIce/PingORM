@@ -40,22 +40,56 @@ namespace PingORM.UnitTests
             Assert.AreEqual(user.NumLogins + 4, EntityAdapter.Get<User>(user.Id).NumLogins);
         }
 
-        public static Func<long[], QueryBuilder<User>> inTestQuery = QueryBuilder<User>.Compile<long[]>(
+        public static Func<long[], QueryBuilder<User>> listContainsTestQuery = QueryBuilder<User>.Compile<long[]>(
             (ids) => EntityAdapter.Query<User>().Where(u => ids.Contains(u.Id)).OrderBy(u => u.Id));
 
         [Test]
-        public void InTest()
+        public void ListContainsTest()
         {
             User user = EntityAdapter.Insert(new User { FirstName = "Eric", LastName = "Cartman", JoinDate = DateTime.Now, NumLogins = 2 });
             User user2 = EntityAdapter.Insert(new User { FirstName = "Stan", LastName = "Marsh", JoinDate = DateTime.Now, NumLogins = 1 });
             User user3 = EntityAdapter.Insert(new User { FirstName = "Kyle", LastName = "Broflovsky", JoinDate = DateTime.Now, NumLogins = 3 });
             User user4 = EntityAdapter.Insert(new User { FirstName = "Kenny", LastName = "McCormick", JoinDate = DateTime.Now, NumLogins = 0 });
 
-            List<User> users = inTestQuery(new long[] { user2.Id, user4.Id }).ToList();
+            List<User> users = listContainsTestQuery(new long[] { user2.Id, user4.Id }).ToList();
 
             Assert.AreEqual(2, users.Count);
             Assert.AreEqual(user2.FirstName, users[0].FirstName);
             Assert.AreEqual(user4.FirstName, users[1].FirstName);
+        }
+
+        public static Func<string, QueryBuilder<User>> stringContainsTestQuery = QueryBuilder<User>.Compile<string>(
+            (str) => EntityAdapter.Query<User>().Where(u => u.LastName.Contains(str)));
+
+        [Test]
+        public void StringContainsTest()
+        {
+            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 });
+            User user2 = EntityAdapter.Insert(new User { FirstName = "Dan", LastName = "Cohen", JoinDate = DateTime.Now, NumLogins = 3 });
+            User user3 = EntityAdapter.Insert(new User { FirstName = "Adam", LastName = "Rosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+            User user4 = EntityAdapter.Insert(new User { FirstName = "Bob", LastName = "Schmarosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+
+            List<User> users = stringContainsTestQuery("Rosen").ToList();
+
+            Assert.AreEqual(3, users.Count);
+            Assert.IsTrue(users[0].LastName.ToLower().Contains("rosen"));
+            Assert.IsTrue(users[1].LastName.ToLower().Contains("rosen"));
+            Assert.IsTrue(users[2].LastName.ToLower().Contains("rosen"));
+        }
+
+        [Test]
+        public void StringStartsWithTest()
+        {
+            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "rosen", JoinDate = DateTime.Now, NumLogins = 2 });
+            User user2 = EntityAdapter.Insert(new User { FirstName = "Dan", LastName = "Cohen", JoinDate = DateTime.Now, NumLogins = 3 });
+            User user3 = EntityAdapter.Insert(new User { FirstName = "Adam", LastName = "Rosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+            User user4 = EntityAdapter.Insert(new User { FirstName = "Bob", LastName = "Schmarosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+
+            List<User> users = EntityAdapter.Query<User>().Where(u => u.LastName.StartsWith("Rosen")).ToList();
+
+            Assert.AreEqual(2, users.Count);
+            Assert.IsTrue(users[0].LastName.ToLower().StartsWith("rosen"));
+            Assert.IsTrue(users[1].LastName.ToLower().StartsWith("rosen"));
         }
     }
 }
