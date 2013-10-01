@@ -52,9 +52,9 @@ namespace PingORM
         /// This method inserts a new entity into the database.
         /// </summary>
         /// <param name="entity"></param>
-        public virtual void Insert(ENTITY entity)
+        public virtual int Insert(ENTITY entity)
         {
-            InsertInternal(entity);
+            return InsertInternal(entity);
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace PingORM
         /// This method inserts a new entity into the database.
         /// </summary>
         /// <param name="entity"></param>
-        protected virtual void InsertInternal(object entity)
+        protected virtual int InsertInternal(object entity)
         {
             ISession session = SessionFactory.GetCurrentSession(entity.GetType());
 
@@ -162,11 +162,15 @@ namespace PingORM
             if (EntityTracker != null)
                 EntityTracker.EntityInserted(entity);
 
+            int retVal = 0;
+
             using (Transaction transaction = SessionFactory.GetTransaction(entity.GetType()))
             {
-                DataMapper.Insert(session, entity);
+                retVal = DataMapper.Insert(session, entity);
                 transaction.Commit();
             }
+
+            return retVal;
         }
 
         /// <summary>
@@ -215,8 +219,7 @@ namespace PingORM
         /// <param name="entity"></param>
         public static ENTITY Insert<ENTITY>(ENTITY entity) where ENTITY : class, new()
         {
-            GetUpdater<ENTITY>().Insert(entity);
-            return entity;
+            return (GetUpdater<ENTITY>().Insert(entity) == 0) ? null : entity;
         }
 
         /// <summary>

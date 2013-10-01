@@ -40,14 +40,33 @@ namespace PingORM
 
         public virtual QueryBuilder<T> Update<TKey>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TKey>> expr)
         {
+            return Update(((MemberExpression)keySelector.Body).Member.Name, expr);
+        }
+
+        public virtual QueryBuilder<T> Update<TKey>(string propertyName, Expression<Func<T, TKey>> expr)
+        {
             this.isUpdate = true;
 
             if (this.UpdateStr.Length > 0)
                 this.UpdateStr.Append(", ");
 
-            this.UpdateStr.Append(String.Format("\"{0}\" = ", DataMapper.GetColumnName(typeof(T), ((MemberExpression)keySelector.Body).Member.Name)));
+            this.UpdateStr.Append(String.Format("\"{0}\" = ", DataMapper.GetColumnName(typeof(T), propertyName)));
 
             this.Visit(expr, this.UpdateStr);
+
+            return this;
+        }
+
+        public virtual QueryBuilder<T> Update(string propertyName, object value)
+        {
+            this.isUpdate = true;
+
+            if (this.UpdateStr.Length > 0)
+                this.UpdateStr.Append(", ");
+
+            this.UpdateStr.Append(String.Format("\"{0}\" = ", DataMapper.GetColumnName(typeof(T), propertyName)));
+
+            this.AddParameter(this.UpdateStr, null, value, value.GetType());
 
             return this;
         }
@@ -452,7 +471,10 @@ namespace PingORM
                     sb.Append(String.Format("\"{0}\"", DataMapper.GetColumnName(typeof(T), m.Member.Name)));
                     break;
                 case ExpressionType.Constant:
-                    AddParameter(sb, m.Member.Name, ((FieldInfo)m.Member).GetValue(((ConstantExpression)m.Expression).Value), ((FieldInfo)m.Member).FieldType, data);
+                    if(m.Member.MemberType == MemberTypes.Field)
+                        AddParameter(sb, m.Member.Name, ((FieldInfo)m.Member).GetValue(((ConstantExpression)m.Expression).Value), ((FieldInfo)m.Member).FieldType, data);
+                    else
+                        AddParameter(sb, m.Member.Name, ((PropertyInfo)m.Member).GetValue(((ConstantExpression)m.Expression).Value), ((PropertyInfo)m.Member).PropertyType, data);
                     break;
                 case ExpressionType.MemberAccess:
                     this.VisitConstant(Expression.Constant(Expression.Lambda(m).Compile().DynamicInvoke(null)), sb, data);

@@ -428,7 +428,7 @@ namespace PingORM
         /// Logs a sql command to the SQL log4net log.
         /// </summary>
         /// <param name="command"></param>
-        public static void LogCommand(NpgsqlCommand command)
+        static void LogCommand(NpgsqlCommand command)
         {
             if (SqlLog.IsDebugEnabled)
             {
@@ -765,11 +765,14 @@ namespace PingORM
                 case "int64":
                     return NpgsqlDbType.Bigint;
                 case "decimal":
+                case "double":
                     return NpgsqlDbType.Numeric;
                 case "datetime":
                     return NpgsqlDbType.Timestamp;
                 case "boolean":
                     return NpgsqlDbType.Boolean;
+                case "guid":
+                    return NpgsqlDbType.Uuid;
             }
 
             return NpgsqlDbType.Varchar;

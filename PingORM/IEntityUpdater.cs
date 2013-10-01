@@ -7,7 +7,7 @@ namespace PingORM
 {
     public interface IEntityUpdater<in ENTITY> where ENTITY : class, new()
     {
-        void Insert(ENTITY entity);
+        int Insert(ENTITY entity);
         void Update(ENTITY entity);
         void Delete(ENTITY entity);
     }

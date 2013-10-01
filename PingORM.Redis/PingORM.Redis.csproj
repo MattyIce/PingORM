@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{AAA8EEF7-1844-465E-90A0-E847D3D7AD85}</ProjectGuid>
+    <ProjectGuid>{5665CAA9-41D5-4BFC-BCBF-1CA500C066EB}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>PingORM</RootNamespace>
-    <AssemblyName>PingORM</AssemblyName>
+    <RootNamespace>PingORM.Redis</RootNamespace>
+    <AssemblyName>PingORM.Redis</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
@@ -32,27 +32,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="log4net">
-      <HintPath>..\packages\log4net.2.0.0\lib\net40-full\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Mono.Security">
-      <HintPath>..\packages\Npgsql.2.0.12.1\lib\net40\Mono.Security.dll</HintPath>
-    </Reference>
-    <Reference Include="Npgsql">
-      <HintPath>..\packages\Npgsql.2.0.12.1\lib\net40\Npgsql.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.framework, Version=2.6.2.12296, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
-    </Reference>
-    <Reference Include="policy.2.0.Npgsql">
-      <HintPath>..\packages\Npgsql.2.0.12.1\lib\net40\policy.2.0.Npgsql.dll</HintPath>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Data.Linq" />
-    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -60,28 +44,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\ColumnAttribute.cs" />
-    <Compile Include="Configuration\DataEntityAttribute.cs" />
-    <Compile Include="DataMapper.cs" />
-    <Compile Include="Configuration\DataMappings.cs" />
-    <Compile Include="DataSession.cs" />
-    <Compile Include="EntityAdapter.cs" />
-    <Compile Include="Configuration\EntityAdapterAttribute.cs" />
-    <Compile Include="IEntityAdapter.cs" />
-    <Compile Include="IEntityTracker.cs" />
-    <Compile Include="IEntityUpdater.cs" />
-    <Compile Include="UnitTests\EntityTests.cs" />
-    <Compile Include="UnitTests\TestEntityAdapter.cs" />
-    <Compile Include="UnitTests\TestEntityTracker.cs" />
-    <Compile Include="UnitTests\TestFixtureBase.cs" />
-    <Compile Include="Utilities\IKeyStorage.cs" />
-    <Compile Include="ISession.cs" />
-    <Compile Include="Utilities\IStorage.cs" />
+    <Compile Include="Configuration\RedisValueAttribute.cs" />
+    <Compile Include="Configuration\RedisEntityAttribute.cs" />
+    <Compile Include="Configuration\RedisFieldAttribute.cs" />
+    <Compile Include="Configuration\RedisKeyAttribute.cs" />
+    <Compile Include="JsonSerializer\JsonArray.cs" />
+    <Compile Include="JsonSerializer\JsonObject.cs" />
+    <Compile Include="JsonSerializer\JsonSerializer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="QueryBuilder.cs" />
-    <Compile Include="SessionFactory.cs" />
-    <Compile Include="Configuration\SettingsBase.cs" />
-    <Compile Include="Transaction.cs" />
+    <Compile Include="RedisEntityAdapter.cs" />
+    <Compile Include="RedisEntityMapper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

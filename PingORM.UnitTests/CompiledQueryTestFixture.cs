@@ -77,6 +77,9 @@ namespace PingORM.UnitTests
             Assert.IsTrue(users[2].LastName.ToLower().Contains("rosen"));
         }
 
+        public static Func<string, QueryBuilder<User>> stringStartsWithTestQuery = QueryBuilder<User>.Compile<string>(
+            (str) => EntityAdapter.Query<User>().Where(u => u.LastName.StartsWith(str)));
+
         [Test]
         public void StringStartsWithTest()
         {
@@ -85,7 +88,7 @@ namespace PingORM.UnitTests
             User user3 = EntityAdapter.Insert(new User { FirstName = "Adam", LastName = "Rosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
             User user4 = EntityAdapter.Insert(new User { FirstName = "Bob", LastName = "Schmarosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
 
-            List<User> users = EntityAdapter.Query<User>().Where(u => u.LastName.StartsWith("Rosen")).ToList();
+            List<User> users = stringStartsWithTestQuery("Rosen").ToList();
 
             Assert.AreEqual(2, users.Count);
             Assert.IsTrue(users[0].LastName.ToLower().StartsWith("rosen"));

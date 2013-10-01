@@ -55,10 +55,6 @@ namespace PingORM.UnitTests
                 EntityTracker = new TestEntityTracker();
                 EntityAdapter.SetEntityTracker(EntityTracker);
 
-                // Register any custom entity adapter classes.
-                if (AdaptersAssembly != null)
-                    EntityAdapter.RegisterAdapters(AdaptersAssembly);
-
                 IsSystemInitialized = true;
             }
         }
@@ -69,7 +65,7 @@ namespace PingORM.UnitTests
         [SetUp]
         public virtual void TestSetup()
         {
-
+            
         }
 
         /// <summary>

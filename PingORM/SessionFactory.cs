@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Data;
 using PingORM.Configuration;
 using PingORM.Utilities;
+using System.Configuration;
 
 namespace PingORM
 {
@@ -74,7 +75,7 @@ namespace PingORM
         /// <returns></returns>
         internal static ISession GetCurrentSession(string key)
         {
-            ConnectionElement connectionElement = ConnectionSettings.Current.Connections[key];
+            ConnectionStringSettings connectionElement = ConfigurationManager.ConnectionStrings[key];
 
             if (connectionElement == null)
                 throw new Exception("No connection string found for the specified key.");
@@ -117,7 +118,7 @@ namespace PingORM
         /// <returns></returns>
         internal static ISession GetNewSession(string key)
         {
-            ConnectionElement connectionElement = ConnectionSettings.Current.Connections["key"];
+            ConnectionStringSettings connectionElement = ConfigurationManager.ConnectionStrings[key];
 
             if(connectionElement == null)
                 throw new Exception("No connection string found for the specified key.");
@@ -135,6 +136,18 @@ namespace PingORM
 
             if (session != null && session.IsConnected)
                 session.Close();
+        }
+
+        /// <summary>
+        /// Ends all open sessions.
+        /// </summary>
+        public static void EndAllSessions()
+        {
+            foreach (ISession session in _sessionStorage.GetAll())
+            {
+                if (session != null && session.IsConnected)
+                    session.Close();
+            }
         }
 
         /// <summary>

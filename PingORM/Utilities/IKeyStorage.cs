@@ -23,6 +23,12 @@ namespace PingORM.Utilities
         /// <param name="key"></param>
         /// <param name="session"></param>
         void SetCurrent(string key, T item);
+
+        /// <summary>
+        /// Gets all of the items stored.
+        /// </summary>
+        /// <returns></returns>
+        List<T> GetAll();
     }
 
     /// <summary>
@@ -56,6 +62,15 @@ namespace PingORM.Utilities
                 _currentItems[key] = item;
             else
                 _currentItems.Add(key, item);
+        }
+
+        /// <summary>
+        /// Gets all of the items stored.
+        /// </summary>
+        /// <returns></returns>
+        public List<T> GetAll()
+        {
+            return _currentItems.Values.ToList();
         }
     }
 
@@ -92,6 +107,15 @@ namespace PingORM.Utilities
             else
                 _currentItems.Add(key, item);
         }
+
+        /// <summary>
+        /// Gets all of the items stored.
+        /// </summary>
+        /// <returns></returns>
+        public List<T> GetAll()
+        {
+            return _currentItems.Values.ToList();
+        }
     }
 
     public class WebKeyStorage<T> : IKeyStorage<T> where T : class
@@ -104,6 +128,21 @@ namespace PingORM.Utilities
         public void SetCurrent(string key, T item)
         {
             HttpContext.Current.Items[String.Format("{0}_{1}", typeof(T).Name, key)] = item;
+        }
+
+        /// <summary>
+        /// Gets all of the items stored.
+        /// </summary>
+        /// <returns></returns>
+        public List<T> GetAll()
+        {
+            List<T> items = new List<T>();
+            foreach (object value in HttpContext.Current.Items.Values)
+            {
+                if (value as T != null)
+                    items.Add(value as T);
+            }
+            return items;
         }
     }
 }

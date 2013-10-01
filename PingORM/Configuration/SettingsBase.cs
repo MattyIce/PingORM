@@ -24,6 +24,9 @@ namespace PingORM.Configuration
                 {
                     try
                     {
+                        if (String.IsNullOrEmpty(GetSettingsFileLocation()))
+                            return null;
+
                         ExeConfigurationFileMap fileMap = new ExeConfigurationFileMap() { ExeConfigFilename = GetSettingsFileLocation() };
                         System.Configuration.Configuration config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
                         _current = config.GetSection(GetSettingsSectionName()) as T;

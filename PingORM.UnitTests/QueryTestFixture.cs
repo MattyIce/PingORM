@@ -13,7 +13,7 @@ namespace PingORM.UnitTests
     /// </summary>
     [TestFixture]
     public class QueryTestFixture : TestFixtureBase
-    {
+    {        
         [Test]
         public void SelectTest()
         {
@@ -24,15 +24,10 @@ namespace PingORM.UnitTests
             Assert.AreEqual(1, users.Count);
         }
 
-        public static Func<long, int, QueryBuilder<User>> updateTestQuery = QueryBuilder<User>.Compile<long, int>(
-            (id, amount) => EntityAdapter.Query<User>()
-                .Where(p => p.Id == id)
-                .Update(p => p.NumLogins, p => p.NumLogins + amount));
-
         [Test]
         public void UpdateTest()
         {
-            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 });
+            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 }) as User;
 
             int count = EntityAdapter.Query<User>().
                 Where(p => p.Id == user.Id)
@@ -45,10 +40,10 @@ namespace PingORM.UnitTests
         [Test]
         public void InTest()
         {
-            User user = EntityAdapter.Insert(new User { FirstName = "Eric", LastName = "Cartman", JoinDate = DateTime.Now, NumLogins = 2 });
-            User user2 = EntityAdapter.Insert(new User { FirstName = "Stan", LastName = "Marsh", JoinDate = DateTime.Now, NumLogins = 1 });
-            User user3 = EntityAdapter.Insert(new User { FirstName = "Kyle", LastName = "Broflovsky", JoinDate = DateTime.Now, NumLogins = 3 });
-            User user4 = EntityAdapter.Insert(new User { FirstName = "Kenny", LastName = "McCormick", JoinDate = DateTime.Now, NumLogins = 0 });
+            User user = EntityAdapter.Insert(new User { FirstName = "Eric", LastName = "Cartman", JoinDate = DateTime.Now, NumLogins = 2 }) as User;
+            User user2 = EntityAdapter.Insert(new User { FirstName = "Stan", LastName = "Marsh", JoinDate = DateTime.Now, NumLogins = 1 }) as User;
+            User user3 = EntityAdapter.Insert(new User { FirstName = "Kyle", LastName = "Broflovsky", JoinDate = DateTime.Now, NumLogins = 3 }) as User;
+            User user4 = EntityAdapter.Insert(new User { FirstName = "Kenny", LastName = "McCormick", JoinDate = DateTime.Now, NumLogins = 0 }) as User;
             
             long[] ids = { user2.Id, user4.Id };
             List<User> users = EntityAdapter.Query<User>().Where(u => ids.Contains(u.Id)).OrderBy(u => u.Id).ToList();
