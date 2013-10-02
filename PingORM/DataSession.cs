@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Npgsql;
 using System.Data;
+using System.Data.SqlClient;
+using Npgsql;
+using MySql.Data.MySqlClient;
 
 namespace PingORM
 {
@@ -15,7 +17,7 @@ namespace PingORM
 
         public DataSession(string connectionString)
         {
-            Connection = new NpgsqlConnection(connectionString);
+            Connection = new MySqlConnection(connectionString);
             Connection.Open();
         }
 

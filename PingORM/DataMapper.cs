@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Npgsql;
 using System.Reflection;
 using System.Data;
-using NpgsqlTypes;
 using PingORM.Configuration;
+using System.Data.SqlClient;
+using Npgsql;
+using MySql.Data.MySqlClient;
 
 namespace PingORM
 {
@@ -103,32 +104,34 @@ namespace PingORM
                 if (mapping.IsPartitioned && partitionKey == null)
                     throw new Exception("Cannot select an object from a partitioned table without a partition key.");
 
-                NpgsqlCommand selectCommand = new NpgsqlCommand(mapping.GetExpression, (NpgsqlConnection)session.Connection);
+                //SqlCommand selectCommand = new SqlCommand(mapping.GetExpression, (SqlConnection)session.Connection);
+                IDbCommand selectCommand = session.Connection.CreateCommand();
+                selectCommand.CommandText = mapping.GetExpression;
 
                 // Get the primary key column(s).
                 List<ColumnMapping> idColumns = mapping.Columns.Where(c => c.IsPk).ToList();
 
                 // Check if we have multiple PKs or just one.
                 if (idColumns.Count == 1)
-                    selectCommand.Parameters.Add(new NpgsqlParameter("p_id0", idColumns[0].DbType)).Value = id;
+                    AddParameter(selectCommand, "p_id0", idColumns[0].DbType, id);
                 else
                 {
                     int i = 0;
 
                     // If we have multiple PKs then add a parameter for each of them.
                     foreach (ColumnMapping idColumn in idColumns)
-                        selectCommand.Parameters.Add(new NpgsqlParameter(String.Format("p_id{0}", i++), idColumn.DbType)).Value = idColumn.PropertyInfo.GetValue(id, null);
+                        AddParameter(selectCommand, String.Format("p_id{0}", i++), idColumn.DbType, idColumn.PropertyInfo.GetValue(id, null));
                 }
 
                 // Add the partition key timestamp parameter.
                 if (mapping.IsPartitioned)
                 {
                     ColumnMapping idColumn = mapping.Columns.FirstOrDefault(c => c.IsPartitionKey);
-                    selectCommand.Parameters.Add(new NpgsqlParameter("p_ts", idColumn.DbType)).Value = partitionKey;
+                    AddParameter(selectCommand, "p_ts", idColumn.DbType, partitionKey);
                 }
 
                 LogCommand(selectCommand);
-                using (NpgsqlDataReader reader = selectCommand.ExecuteReader())
+                using (IDataReader reader = selectCommand.ExecuteReader())
                 {
                     if (reader.Read())
                         return FromDb(type, reader);
@@ -168,7 +171,7 @@ namespace PingORM
         /// <param name="type"></param>
         /// <param name="reader"></param>
         /// <returns></returns>
-        private static object FromDb(Type type, NpgsqlDataReader reader)
+        private static object FromDb(Type type, IDataReader reader)
         {
             TableMapping mapping = _mappings[type];
             object record = Activator.CreateInstance(type);
@@ -202,19 +205,20 @@ namespace PingORM
             // Make sure the mappings have been loaded for this type.
             LoadMappings(typeof(T));
 
-            NpgsqlCommand selectCommand = new NpgsqlCommand(query.ToString(), (NpgsqlConnection)session.Connection);
+            IDbCommand selectCommand = session.Connection.CreateCommand();
+            selectCommand.CommandText = query.ToString();
 
             if (query.Parameters != null)
             {
                 // Add the parameters from the query builder.
                 foreach (var parameter in query.Parameters)
-                    selectCommand.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()))).Value = parameter.Value.Value;
+                    AddParameter(selectCommand, parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()), parameter.Value.Value);
             }
 
             List<T> results = new List<T>();
 
             LogCommand(selectCommand);
-            using (NpgsqlDataReader reader = selectCommand.ExecuteReader())
+            using (IDataReader reader = selectCommand.ExecuteReader())
             {
                 while (reader.Read())
                     yield return FromDb(typeof(T), reader) as T;
@@ -235,13 +239,14 @@ namespace PingORM
 
             try
             {
-                NpgsqlCommand selectCommand = new NpgsqlCommand(query.ToString(), (NpgsqlConnection)session.Connection);
+                IDbCommand selectCommand = session.Connection.CreateCommand();
+                selectCommand.CommandText = query.ToString();
 
                 if (query.Parameters != null)
                 {
                     // Add the parameters from the query builder.
                     foreach (var parameter in query.Parameters)
-                        selectCommand.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()))).Value = parameter.Value.Value;
+                        AddParameter(selectCommand, parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()), parameter.Value.Value);
                 }
 
                 LogCommand(selectCommand);
@@ -265,23 +270,40 @@ namespace PingORM
             try
             {
                 TableMapping mapping = _mappings[entity.GetType()];
-                NpgsqlCommand insertCommand = new NpgsqlCommand(mapping.InsertExpression, (NpgsqlConnection)session.Connection);
+                IDbCommand insertCommand = session.Connection.CreateCommand();
+                insertCommand.CommandText = mapping.InsertExpression;
 
                 int i = 0;
                 foreach (ColumnMapping column in mapping.Columns)
                 {
-                    if (column.IsPk && !String.IsNullOrEmpty(mapping.SequenceName))
+                    if (SessionFactory.Provider == DataProvider.MySql && column.IsAutoGenerated)
+                        continue;
+
+                    // For Postgres we need to get the next sequence value for the ID.
+                    if (column.IsPk && !String.IsNullOrEmpty(mapping.SequenceName) && SessionFactory.Provider == DataProvider.Postgres)
                     {
-                        NpgsqlCommand seqCommand = new NpgsqlCommand(String.Format("select nextval('\"{0}\"')", mapping.SequenceName), (NpgsqlConnection)session.Connection);
+                        IDbCommand seqCommand = session.Connection.CreateCommand();
+                        seqCommand.CommandText = String.Format("select nextval('\"{0}\"')", mapping.SequenceName);
                         LogCommand(seqCommand);
                         column.PropertyInfo.SetValue(entity, Convert.ChangeType(seqCommand.ExecuteScalar(), column.PropertyType), null);
                     }
 
-                    insertCommand.Parameters.Add(new NpgsqlParameter(String.Format("p{0}", i++), column.DbType)).Value = column.GetValue(entity);
+                    AddParameter(insertCommand, String.Format("p{0}", i++), column.DbType, column.GetValue(entity));
                 }
 
                 LogCommand(insertCommand);
-                return insertCommand.ExecuteNonQuery();
+                int result = insertCommand.ExecuteNonQuery();
+
+                // For MySQL we need to get the ID of the last generated auto_increment column.
+                if (insertCommand is MySqlCommand)
+                {
+                    ColumnMapping column = mapping.Columns.FirstOrDefault(c => c.IsAutoGenerated);
+
+                    if(column != null)
+                        column.PropertyInfo.SetValue(entity, ((MySqlCommand)insertCommand).LastInsertedId);
+                }
+
+                return result;
             }
             catch (Exception ex) { Log.Error("DataMapper.Insert threw an exception.", ex); }
 
@@ -302,13 +324,14 @@ namespace PingORM
 
             try
             {
-                NpgsqlCommand command = new NpgsqlCommand(query.ToString(), (NpgsqlConnection)session.Connection);
+                IDbCommand command = session.Connection.CreateCommand();
+                command.CommandText = query.ToString();
 
                 if (query.Parameters != null)
                 {
                     // Add the parameters from the query builder.
                     foreach (var parameter in query.Parameters)
-                        command.Parameters.Add(new NpgsqlParameter(parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()))).Value = parameter.Value.Value;
+                        AddParameter(command, parameter.Key, ColumnMapping.GetDbType(parameter.Value.Value.GetType()), parameter.Value.Value);
                 }
 
                 LogCommand(command);
@@ -332,11 +355,12 @@ namespace PingORM
             try
             {
                 TableMapping mapping = _mappings[entity.GetType()];
-                NpgsqlCommand updateCommand = new NpgsqlCommand(mapping.UpdateExpression, (NpgsqlConnection)session.Connection);
+                IDbCommand updateCommand = session.Connection.CreateCommand();
+                updateCommand.CommandText = mapping.UpdateExpression;
 
                 int i = 0;
                 foreach (ColumnMapping column in mapping.Columns)
-                    updateCommand.Parameters.Add(new NpgsqlParameter(String.Format("p{0}", i++), column.DbType)).Value = column.GetValue(entity);
+                    AddParameter(updateCommand, String.Format("p{0}", i++), column.DbType, column.GetValue(entity));
 
                 LogCommand(updateCommand);
                 return updateCommand.ExecuteNonQuery();
@@ -360,11 +384,12 @@ namespace PingORM
             try
             {
                 TableMapping mapping = _mappings[entity.GetType()];
-                NpgsqlCommand deleteCommand = new NpgsqlCommand(mapping.DeleteExpression, (NpgsqlConnection)session.Connection);
+                IDbCommand deleteCommand = session.Connection.CreateCommand();
+                deleteCommand.CommandText = mapping.DeleteExpression;
 
                 int i = 0;
                 foreach (ColumnMapping column in mapping.Columns.Where(c => c.IsPk))
-                    deleteCommand.Parameters.Add(new NpgsqlParameter(String.Format("p{0}", i++), column.DbType)).Value = column.GetValue(entity);
+                    AddParameter(deleteCommand, String.Format("p{0}", i++), column.DbType, column.GetValue(entity));
 
                 LogCommand(deleteCommand);
                 return deleteCommand.ExecuteNonQuery();
@@ -397,16 +422,17 @@ namespace PingORM
 
             try
             {
-                NpgsqlCommand command = new NpgsqlCommand(sql, (NpgsqlConnection)session.Connection);
+                IDbCommand command = session.Connection.CreateCommand();
+                command.CommandText = sql;
 
                 if (parameters != null)
                 {
                     foreach (KeyValuePair<string, object> kvp in parameters)
-                        command.Parameters.Add(new NpgsqlParameter(kvp.Key, ColumnMapping.GetDbType(kvp.Value.GetType()))).Value = kvp.Value;
+                        AddParameter(command, kvp.Key, ColumnMapping.GetDbType(kvp.Value.GetType()), kvp.Value);
                 }
 
                 LogCommand(command);
-                using (NpgsqlDataReader reader = command.ExecuteReader())
+                using (IDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
@@ -424,18 +450,27 @@ namespace PingORM
             return results;
         }
 
+        private static void AddParameter(IDbCommand command, string paramName, DbType type, object value)
+        {
+            IDbDataParameter param = command.CreateParameter();
+            param.ParameterName = paramName;
+            param.DbType = type;
+            param.Value = value;
+            command.Parameters.Add(param);
+        }
+
         /// <summary>
         /// Logs a sql command to the SQL log4net log.
         /// </summary>
         /// <param name="command"></param>
-        static void LogCommand(NpgsqlCommand command)
+        static void LogCommand(IDbCommand command)
         {
             if (SqlLog.IsDebugEnabled)
             {
                 StringBuilder sb = new StringBuilder(command.CommandText);
 
-                foreach (NpgsqlParameter param in command.Parameters)
-                    sb.Append(String.Format(" :{0} = {1} [Type: {2}],", param.ParameterName, param.Value, param.NpgsqlDbType));
+                foreach (IDbDataParameter param in command.Parameters)
+                    sb.Append(String.Format(" :{0} = {1} [Type: {2}],", param.ParameterName, param.Value, param.DbType));
 
                 SqlLog.Debug(sb.ToString());
             }
@@ -478,6 +513,33 @@ namespace PingORM
         {
             ColumnMapping column = GetColumnMapping(type, propertyName);
             return (column == null) ? null : column.ColumnName;
+        }
+
+        internal static string EscapeName(string name)
+        {
+            return (SessionFactory.Provider == DataProvider.Postgres) ? String.Format("\"{0}\"", name) : name;
+        }
+
+        internal static string ParamName(string name)
+        {
+            return ParamName(name, false);
+        }
+
+        internal static string ParamName(string name, bool isConst)
+        {
+            return (SessionFactory.Provider == DataProvider.Postgres) ?
+                String.Format(":{0}{1}", isConst ? "c" : "p", name) :
+                String.Format("@{0}{1}", isConst ? "c" : "p", name);
+        }
+
+        internal static string ParamName(int name)
+        {
+            return ParamName(name, false);
+        }
+
+        internal static string ParamName(int name, bool isConst)
+        {
+            return ParamName(name.ToString(), false);
         }
     }
 
@@ -574,11 +636,14 @@ namespace PingORM
             int i = 0;
             foreach (ColumnMapping column in Columns)
             {
-                columnStr.Append(String.Format("\"{0}\",", column.ColumnName));
-                valueStr.Append(String.Format(":p{0},", i++));
+                if (SessionFactory.Provider == DataProvider.MySql && column.IsAutoGenerated)
+                    continue;
+
+                columnStr.Append(String.Format("{0},", DataMapper.EscapeName(column.ColumnName)));
+                valueStr.Append(String.Format("{0},", DataMapper.ParamName(i++)));
             }
 
-            this.InsertExpression = String.Format("INSERT INTO \"{0}\" ({1}) VALUES ({2});", this.TableName,
+            this.InsertExpression = String.Format("INSERT INTO {0} ({1}) VALUES ({2});", DataMapper.EscapeName(this.TableName),
                 columnStr.ToString().TrimEnd(new char[] { ',' }), valueStr.ToString().TrimEnd(new char[] { ',' }));
         }
 
@@ -592,10 +657,10 @@ namespace PingORM
                 if (whereStr.Length > 0)
                     whereStr.Append(" AND ");
 
-                whereStr.Append(String.Format("\"{0}\" = :p{1}", column.ColumnName, i++));
+                whereStr.Append(String.Format("{0} = {1}", DataMapper.EscapeName(column.ColumnName), DataMapper.ParamName(i++)));
             }
 
-            this.DeleteExpression = String.Format("DELETE FROM \"{0}\" WHERE {1};", this.TableName, whereStr.ToString());
+            this.DeleteExpression = String.Format("DELETE FROM {0} WHERE {1};", DataMapper.EscapeName(this.TableName), whereStr.ToString());
         }
 
         public void GenerateUpdateExpression()
@@ -611,13 +676,13 @@ namespace PingORM
                     if (whereStr.Length > 0)
                         whereStr.Append(" AND ");
 
-                    whereStr.Append(String.Format("\"{0}\" = :p{1}", column.ColumnName, i++));
+                    whereStr.Append(String.Format("{0} = {1}", DataMapper.EscapeName(column.ColumnName), DataMapper.ParamName(i++)));
                 }
                 else
-                    columnStr.Append(String.Format("\"{0}\" = :p{1},", column.ColumnName, i++));
+                    columnStr.Append(String.Format("{0} = {1},", DataMapper.EscapeName(column.ColumnName), DataMapper.ParamName(i++)));
             }
 
-            this.UpdateExpression = String.Format("UPDATE \"{0}\" SET {1} WHERE {2};", this.TableName,
+            this.UpdateExpression = String.Format("UPDATE {0} SET {1} WHERE {2};", DataMapper.EscapeName(this.TableName),
                 columnStr.ToString().TrimEnd(new char[] { ',' }), whereStr.ToString());
         }
 
@@ -627,9 +692,9 @@ namespace PingORM
             StringBuilder whereStr = new StringBuilder();
 
             foreach (ColumnMapping column in Columns)
-                columnStr.Append(String.Format("\"{0}\",", column.ColumnName));
+                columnStr.Append(String.Format("{0},", DataMapper.EscapeName(column.ColumnName)));
 
-            this.SelectExpression = String.Format("SELECT {0} FROM \"{1}\"", columnStr.ToString().TrimEnd(new char[] { ',' }), this.TableName);
+            this.SelectExpression = String.Format("SELECT {0} FROM {1}", columnStr.ToString().TrimEnd(new char[] { ',' }), DataMapper.EscapeName(this.TableName));
         }
 
         public void GenerateGetExpression()
@@ -644,7 +709,7 @@ namespace PingORM
                     if (whereStr.Length > 0)
                         whereStr.Append(" AND ");
 
-                    whereStr.Append(String.Format("\"{0}\" = :p_{1}", column.ColumnName, column.IsPk ? String.Format("id{0}", i++) : "ts"));
+                    whereStr.Append(String.Format("{0} = {1}", DataMapper.EscapeName(column.ColumnName), DataMapper.ParamName(column.IsPk ? String.Format("_id{0}", i++) : "ts")));
                 }
             }
 
@@ -663,7 +728,7 @@ namespace PingORM
         public string PropertyName { get; set; }
         public string ColumnName { get; set; }
         public Type PropertyType { get; set; }
-        public NpgsqlDbType DbType { get; set; }
+        public DbType DbType { get; set; }
         public bool IsPk { get; set; }
         public bool IsPartitionKey { get; set; }
         public bool IsAutoGenerated { get; set; }
@@ -746,7 +811,7 @@ namespace PingORM
             }
         }
 
-        public static NpgsqlDbType GetDbType(Type type)
+        public static DbType GetDbType(Type type)
         {
             // If the property is an enum or nullable type then get the underlying type name.
             if (type.BaseType.Name.ToLower() == "enum")
@@ -757,25 +822,25 @@ namespace PingORM
             switch (type.Name.ToLower())
             {
                 case "string":
-                    return NpgsqlDbType.Varchar;
+                    return DbType.String;
                 case "int16":
-                    return NpgsqlDbType.Smallint;
+                    return DbType.Int16;
                 case "int32":
-                    return NpgsqlDbType.Integer;
+                    return DbType.Int32;
                 case "int64":
-                    return NpgsqlDbType.Bigint;
+                    return DbType.Int64;
                 case "decimal":
                 case "double":
-                    return NpgsqlDbType.Numeric;
+                    return DbType.Double;
                 case "datetime":
-                    return NpgsqlDbType.Timestamp;
+                    return DbType.DateTime;
                 case "boolean":
-                    return NpgsqlDbType.Boolean;
+                    return DbType.Boolean;
                 case "guid":
-                    return NpgsqlDbType.Uuid;
+                    return DbType.Guid;
             }
 
-            return NpgsqlDbType.Varchar;
+            return DbType.String;
         }
     }
 }

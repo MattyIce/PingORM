@@ -10,10 +10,17 @@ using System.Configuration;
 
 namespace PingORM
 {
+    public enum DataProvider
+    {
+        Postgres,
+        MySql
+    }
+
     public class SessionFactory
     {
         static log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static IKeyStorage<ISession> _sessionStorage;
+        internal static DataProvider Provider = DataProvider.Postgres;
 
         /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element.
@@ -24,6 +31,15 @@ namespace PingORM
         /// Initialize the session factory from the connectionSettings configuration element using web session storage.
         /// </summary>
         public static void InitializeWeb() { Initialize(new WebKeyStorage<ISession>()); }
+
+        /// <summary>
+        /// Initialize the session factory from the connectionSettings configuration element using web session storage for a specific data provider.
+        /// </summary>
+        public static void InitializeWeb(DataProvider provider)
+        {
+            Provider = provider;
+            InitializeWeb();
+        }
 
         /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element.

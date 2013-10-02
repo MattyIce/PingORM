@@ -50,7 +50,7 @@ namespace PingORM
             if (this.UpdateStr.Length > 0)
                 this.UpdateStr.Append(", ");
 
-            this.UpdateStr.Append(String.Format("\"{0}\" = ", DataMapper.GetColumnName(typeof(T), propertyName)));
+            this.UpdateStr.Append(String.Format("{0} = ", DataMapper.EscapeName(DataMapper.GetColumnName(typeof(T), propertyName))));
 
             this.Visit(expr, this.UpdateStr);
 
@@ -64,7 +64,7 @@ namespace PingORM
             if (this.UpdateStr.Length > 0)
                 this.UpdateStr.Append(", ");
 
-            this.UpdateStr.Append(String.Format("\"{0}\" = ", DataMapper.GetColumnName(typeof(T), propertyName)));
+            this.UpdateStr.Append(String.Format("{0} = ", DataMapper.EscapeName(DataMapper.GetColumnName(typeof(T), propertyName))));
 
             this.AddParameter(this.UpdateStr, null, value, value.GetType());
 
@@ -78,7 +78,7 @@ namespace PingORM
 
         public virtual int Count()
         {
-            this.SelectStr = String.Format("SELECT COUNT(*) FROM \"{0}\"", Mapping.TableName);
+            this.SelectStr = String.Format("SELECT COUNT(*) FROM {0}", DataMapper.EscapeName(Mapping.TableName));
             return Convert.ToInt32(DataMapper.SelectScalar(SessionFactory.GetCurrentSession(typeof(T)), this));
         }
 
@@ -113,7 +113,7 @@ namespace PingORM
 
         public override string ToString()
         {
-            StringBuilder query = new StringBuilder((this.isUpdate) ? String.Format("UPDATE \"{0}\"", this.Mapping.TableName) : this.SelectStr);
+            StringBuilder query = new StringBuilder((this.isUpdate) ? String.Format("UPDATE {0}", DataMapper.EscapeName(this.Mapping.TableName)) : this.SelectStr);
 
             if (this.UpdateStr.Length > 0)
                 query.Append(" SET ").Append(this.UpdateStr.ToString());
@@ -147,7 +147,7 @@ namespace PingORM
             if (this.OrderByStr.Length > 0)
                 this.OrderByStr.Append(", ");
 
-            this.OrderByStr.Append(String.Format("\"{0}\"", DataMapper.GetColumnName(typeof(T), ((MemberExpression)keySelector.Body).Member.Name)));
+            this.OrderByStr.Append(DataMapper.EscapeName(DataMapper.GetColumnName(typeof(T), ((MemberExpression)keySelector.Body).Member.Name)));
             return this;
         }
 
@@ -238,7 +238,7 @@ namespace PingORM
                 int i = 0;
                 foreach (object val in (IEnumerable)value)
                 {
-                    string paramName = String.Format(":p{0}{1}", name, i++);
+                    string paramName = DataMapper.ParamName(String.Format("{0}{1}", name, i++));
 
                     if (i > 1)
                         sb.Append(",");
@@ -252,7 +252,7 @@ namespace PingORM
                         Parameters.Add(paramName, new QueryParameter { Value = val });
                 }
 
-                string baseParamName = String.Format(":p{0}", name);
+                string baseParamName = DataMapper.ParamName(name);
 
                 if (Parameters.ContainsKey(baseParamName))
                 {
@@ -266,7 +266,7 @@ namespace PingORM
             }
             else
             {
-                string paramName = String.Format(":p{0}", name);
+                string paramName = DataMapper.ParamName(name);
 
                 if (Parameters.ContainsKey(paramName))
                 {
@@ -379,7 +379,7 @@ namespace PingORM
                     {
                         return this.VisitConstant(Expression.Constant(Expression.Lambda(exp).Compile().DynamicInvoke(null)), sb);
                     }
-                    catch (Exception e) { throw new NotSupportedException(String.Format("The method [{0}] is not supported.", exp.Method.Name)); }
+                    catch (Exception) { throw new NotSupportedException(String.Format("The method [{0}] is not supported.", exp.Method.Name)); }
             }
         }
 
@@ -468,7 +468,7 @@ namespace PingORM
             switch(m.Expression.NodeType)
             {
                 case ExpressionType.Parameter:
-                    sb.Append(String.Format("\"{0}\"", DataMapper.GetColumnName(typeof(T), m.Member.Name)));
+                    sb.Append(DataMapper.EscapeName(DataMapper.GetColumnName(typeof(T), m.Member.Name)));
                     break;
                 case ExpressionType.Constant:
                     if(m.Member.MemberType == MemberTypes.Field)
@@ -509,7 +509,7 @@ namespace PingORM
                 int i = 0;
                 foreach (object val in (IEnumerable)value)
                 {
-                    string paramName = String.IsNullOrEmpty(name) ? String.Format(":c{0}", Parameters.Count) : String.Format(":p{0}{1}", name, i++);
+                    string paramName = String.IsNullOrEmpty(name) ? DataMapper.ParamName(Parameters.Count, true) : DataMapper.ParamName(String.Format("{0}{1}", name, i++));
 
                     if (i > 1)
                         sb.Append(",");
@@ -526,7 +526,7 @@ namespace PingORM
                 if (data != null && value != null && !String.IsNullOrEmpty(data.AppendEnd) && value.GetType() == typeof(String))
                     value = String.Format("{0}{1}", value, data.AppendEnd);
 
-                string paramName = String.IsNullOrEmpty(name) ? String.Format(":c{0}", Parameters.Count) : String.Format(":p{0}", name);
+                string paramName = String.IsNullOrEmpty(name) ? DataMapper.ParamName(Parameters.Count, true) : DataMapper.ParamName(name);
                 sb.Append(paramName);
 
                 if (data == null)
