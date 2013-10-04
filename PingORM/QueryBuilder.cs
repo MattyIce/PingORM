@@ -414,6 +414,7 @@ namespace PingORM
                     sb.Append(" AND ");
                     break;
                 case ExpressionType.Or:
+                case ExpressionType.OrElse:
                     sb.Append(" OR");
                     break;
                 case ExpressionType.Equal:
