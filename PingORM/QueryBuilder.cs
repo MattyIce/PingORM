@@ -43,6 +43,11 @@ namespace PingORM
             return Update(((MemberExpression)keySelector.Body).Member.Name, expr);
         }
 
+        public virtual QueryBuilder<T> Update<TKey>(Expression<Func<T, TKey>> keySelector, object value)
+        {
+            return Update(((MemberExpression)keySelector.Body).Member.Name, value);
+        }
+
         public virtual QueryBuilder<T> Update<TKey>(string propertyName, Expression<Func<T, TKey>> expr)
         {
             this.isUpdate = true;
