@@ -17,7 +17,16 @@ namespace PingORM
 
         public DataSession(string connectionString)
         {
-            Connection = new MySqlConnection(connectionString);
+            switch(SessionFactory.Provider)
+            {
+                case DataProvider.Postgres:
+                    Connection = new NpgsqlConnection(connectionString);
+                    break;
+                case DataProvider.MySql:
+                    Connection = new MySqlConnection(connectionString);
+                    break;
+            }
+            
             Connection.Open();
         }
 
