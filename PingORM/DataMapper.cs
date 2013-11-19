@@ -830,6 +830,7 @@ namespace PingORM
                 case "int64":
                     return DbType.Int64;
                 case "decimal":
+                    return DbType.Decimal;
                 case "double":
                     return DbType.Double;
                 case "datetime":
