@@ -30,7 +30,8 @@ namespace PingORM
 
         public IEnumerator<T> GetEnumerator()
         {
-            return DataMapper.Select(SessionFactory.GetCurrentSession(typeof(T)), this);
+            foreach (T record in DataMapper.Select(SessionFactory.GetCurrentSession(typeof(T)), this))
+                yield return record;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -420,12 +421,25 @@ namespace PingORM
                     break;
                 case ExpressionType.Or:
                 case ExpressionType.OrElse:
-                    sb.Append(" OR");
+                    sb.Append(" OR ");
                     break;
                 case ExpressionType.Equal:
+                    // Special case for null.
+                    if(b.Right is UnaryExpression && ((UnaryExpression)b.Right).Operand is ConstantExpression && ((ConstantExpression)((UnaryExpression)b.Right).Operand).Value == null)
+                    {
+                        sb.Append(" IS NULL)");
+                        return b;
+                    }
+
                     sb.Append(" = ");
                     break;
                 case ExpressionType.NotEqual:
+                    if (b.Right is UnaryExpression && ((UnaryExpression)b.Right).Operand is ConstantExpression && ((ConstantExpression)((UnaryExpression)b.Right).Operand).Value == null)
+                    {
+                        sb.Append(" IS NOT NULL)");
+                        return b;
+                    }
+
                     sb.Append(" <> ");
                     break;
                 case ExpressionType.LessThan:

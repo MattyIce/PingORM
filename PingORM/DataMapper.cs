@@ -200,7 +200,7 @@ namespace PingORM
         /// <param name="session"></param>
         /// <param name="query"></param>
         /// <returns></returns>
-        public static IEnumerator<T> Select<T>(ISession session, QueryBuilder<T> query) where T : class, new()
+        public static IEnumerable<T> Select<T>(ISession session, QueryBuilder<T> query) where T : class, new()
         {
             // Make sure the mappings have been loaded for this type.
             LoadMappings(typeof(T));
@@ -221,8 +221,10 @@ namespace PingORM
             using (IDataReader reader = selectCommand.ExecuteReader())
             {
                 while (reader.Read())
-                    yield return FromDb(typeof(T), reader) as T;
+                    results.Add(FromDb(typeof(T), reader) as T);
             }
+
+            return results;
         }
 
         /// <summary>
