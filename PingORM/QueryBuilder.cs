@@ -39,12 +39,25 @@ namespace PingORM
             return this.GetEnumerator();
         }
 
+        public virtual QueryBuilder<T> ById(object id)
+        {
+            if (Mapping.Columns.Where(c => c.IsPk).Count() > 1)
+                throw new NotSupportedException("QueryBuilder.ById is not supported for tables with multiple PK columns.");
+
+            ColumnMapping pk = Mapping.Columns.FirstOrDefault(c => c.IsPk);
+
+            WhereStr.Append(DataMapper.EscapeName(pk.ColumnName)).Append(" = ");
+            AddParameter(WhereStr, "pk", id, id.GetType());
+
+            return this;
+        }
+
         public virtual QueryBuilder<T> Update<TKey>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TKey>> expr)
         {
             return Update(((MemberExpression)keySelector.Body).Member.Name, expr);
         }
 
-        public virtual QueryBuilder<T> Update<TKey>(Expression<Func<T, TKey>> keySelector, object value)
+        public virtual QueryBuilder<T> Update<TKey>(Expression<Func<T, TKey>> keySelector, TKey value)
         {
             return Update(((MemberExpression)keySelector.Body).Member.Name, value);
         }
@@ -73,6 +86,25 @@ namespace PingORM
             this.UpdateStr.Append(String.Format("{0} = ", DataMapper.EscapeName(DataMapper.GetColumnName(typeof(T), propertyName))));
 
             this.AddParameter(this.UpdateStr, null, value, value.GetType());
+
+            return this;
+        }
+
+        public virtual QueryBuilder<T> Increment<TKey>(Expression<Func<T, TKey>> keySelector)
+        {
+            return Increment<TKey>(keySelector, 1);
+        }
+
+        public virtual QueryBuilder<T> Increment<TKey>(Expression<Func<T, TKey>> keySelector, object amount)
+        {
+            this.isUpdate = true;
+
+            if (this.UpdateStr.Length > 0)
+                this.UpdateStr.Append(", ");
+
+            this.UpdateStr.Append(String.Format("{0} = {0} + ", DataMapper.EscapeName(DataMapper.GetColumnName(typeof(T), ((MemberExpression)keySelector.Body).Member.Name))));
+
+            this.AddParameter(this.UpdateStr, null, amount, amount.GetType());
 
             return this;
         }
