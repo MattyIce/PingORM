@@ -100,6 +100,15 @@ namespace PingORM
             {
                 TableMapping mapping = _mappings[type];
 
+                // If caching is enabled for this entity type, check if it is in cache already.
+                if (mapping.CachingEnabled)
+                {
+                    object cachedEntity = GetCachedEntity(type, id);
+
+                    if (cachedEntity != null)
+                        return cachedEntity;
+                }
+
                 // Make sure that the table is not partitioned.
                 if (mapping.IsPartitioned && partitionKey == null)
                     throw new Exception("Cannot select an object from a partitioned table without a partition key.");
@@ -131,6 +140,7 @@ namespace PingORM
                 }
 
                 LogCommand(selectCommand);
+
                 using (IDataReader reader = selectCommand.ExecuteReader())
                 {
                     if (reader.Read())
@@ -166,6 +176,36 @@ namespace PingORM
         }
 
         /// <summary>
+        /// Gets a string identifier of the specified entity based upon the Primary Key defined in the mapping.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public static string GetIdString(object entity)
+        {
+            // Make sure the mappings have been loaded for this type.
+            LoadMappings(entity.GetType());
+
+            TableMapping mapping = _mappings[entity.GetType()];
+
+            // Get the primary key column(s).
+            List<ColumnMapping> idColumns = mapping.Columns.Where(c => c.IsPk).ToList();
+
+            // Check if we have multiple PKs or just one.
+            if (idColumns.Count == 1)
+                return String.Format("{0}:{1}", entity.GetType().Name, idColumns[0].PropertyInfo.GetValue(entity));
+            else
+            {
+                StringBuilder retVal = new StringBuilder(entity.GetType().Name);
+
+                foreach (ColumnMapping idColumn in idColumns)
+                    retVal.Append(":").Append(idColumn.PropertyInfo.GetValue(entity));
+
+                return retVal.ToString();
+            }
+        }
+
+        /// <summary>
         /// Reads an object of the specified type from the specified data reader.
         /// </summary>
         /// <param name="type"></param>
@@ -189,6 +229,9 @@ namespace PingORM
                 }
                 catch (Exception ex) { Log.Error(String.Format("DataMapper.FromDb threw an exception getting column [{0}].", column.ColumnName), ex); }
             }
+
+            if(mapping.CachingEnabled)
+                CacheEntity(record);
 
             return record;
         }
@@ -305,11 +348,28 @@ namespace PingORM
                         column.PropertyInfo.SetValue(entity, ((MySqlCommand)insertCommand).LastInsertedId);
                 }
 
+                CacheEntity(entity);
+
                 return result;
             }
             catch (Exception ex) { Log.Error("DataMapper.Insert threw an exception.", ex); }
 
             return 0;
+        }
+
+        internal static void CacheEntity(object entity)
+        {
+            SessionFactory.SessionStorage.SetCurrent(GetIdString(entity), entity);
+        }
+
+        internal static object GetCachedEntity(Type type, object id)
+        {
+            return SessionFactory.SessionStorage.GetCurrent<object>(String.Format("{0}:{1}", type.Name, id));
+        }
+
+        internal static void ClearCachedEntity(object entity)
+        {
+            SessionFactory.SessionStorage.SetCurrent(GetIdString(entity), null);
         }
 
         /// <summary>
@@ -365,7 +425,12 @@ namespace PingORM
                     AddParameter(updateCommand, String.Format("p{0}", i++), column.DbType, column.GetValue(entity));
 
                 LogCommand(updateCommand);
-                return updateCommand.ExecuteNonQuery();
+                int rows = updateCommand.ExecuteNonQuery();
+
+                if (rows > 0 && mapping.CachingEnabled)
+                    CacheEntity(entity);
+
+                return rows;
             }
             catch (Exception ex) { Log.Error("DataMapper.Update threw an exception.", ex); }
 
@@ -394,7 +459,12 @@ namespace PingORM
                     AddParameter(deleteCommand, String.Format("p{0}", i++), column.DbType, column.GetValue(entity));
 
                 LogCommand(deleteCommand);
-                return deleteCommand.ExecuteNonQuery();
+                int rows = deleteCommand.ExecuteNonQuery();
+
+                if (rows > 0 && mapping.CachingEnabled)
+                    ClearCachedEntity(entity);
+
+                return rows;
             }
             catch (Exception ex) { Log.Error("DataMapper.Delete threw an exception.", ex); }
 
@@ -561,6 +631,7 @@ namespace PingORM
         public string UpdateExpression { get; set; }
         public string SelectExpression { get; set; }
         public string GetExpression { get; set; }
+        public bool CachingEnabled { get; set; }
 
         public TableMapping()
         {
@@ -572,6 +643,7 @@ namespace PingORM
             this.Key = tableAttribute.Key;
             this.TableName = tableAttribute.TableName;
             this.SequenceName = tableAttribute.SequenceName;
+            this.CachingEnabled = !tableAttribute.DisableCaching;
 
             this.LoadColumns(type, null);
             this.Initialize();

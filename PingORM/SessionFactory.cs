@@ -19,18 +19,18 @@ namespace PingORM
     public class SessionFactory
     {
         static log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private static IKeyStorage<ISession> _sessionStorage;
+        internal static IKeyStorage SessionStorage;
         internal static DataProvider Provider = DataProvider.Postgres;
 
         /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element.
         /// </summary>
-        public static void Initialize() { Initialize(new StaticKeyStorage<ISession>()); }
+        public static void Initialize() { Initialize(new StaticKeyStorage()); }
 
         /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element using web session storage.
         /// </summary>
-        public static void InitializeWeb() { Initialize(new WebKeyStorage<ISession>()); }
+        public static void InitializeWeb() { Initialize(new WebKeyStorage()); }
 
         /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element using web session storage for a specific data provider.
@@ -45,7 +45,7 @@ namespace PingORM
         /// Initialize the session factory from the connectionSettings configuration element.
         /// </summary>
         /// <param name="sessionStorage"></param>
-        public static void Initialize(IKeyStorage<ISession> sessionStorage)
+        public static void Initialize(IKeyStorage sessionStorage)
         {
             SetSessionStorage(sessionStorage);
         }
@@ -54,7 +54,7 @@ namespace PingORM
         /// Sets the current sessage storage object.
         /// </summary>
         /// <param name="sessionStorage"></param>
-        public static void SetSessionStorage(IKeyStorage<ISession> sessionStorage) { _sessionStorage = sessionStorage; }
+        public static void SetSessionStorage(IKeyStorage sessionStorage) { SessionStorage = sessionStorage; }
 
         /// <summary>
         /// Disconnects the current session and starts a new one.
@@ -62,10 +62,10 @@ namespace PingORM
         /// <param name="key"></param>
         public static void StartNewSession(string key)
         {
-            if (_sessionStorage == null)
+            if (SessionStorage == null)
                 return;
 
-            ISession session = _sessionStorage.GetCurrent(key);
+            ISession session = SessionStorage.GetCurrent<ISession>(key);
 
             if (session != null && session.IsConnected)
                 session.Close();
@@ -96,13 +96,13 @@ namespace PingORM
             if (connectionElement == null)
                 throw new Exception("No connection string found for the specified key.");
 
-            if (_sessionStorage != null)
+            if (SessionStorage != null)
             {
-                ISession session = _sessionStorage.GetCurrent(key);
+                ISession session = SessionStorage.GetCurrent<ISession>(key);
 
                 // Make sure an open session is stored.
                 if (session == null || !session.IsConnected)
-                    _sessionStorage.SetCurrent(key, session = new DataSession(connectionElement.ConnectionString));
+                    SessionStorage.SetCurrent(key, session = new DataSession(connectionElement.ConnectionString));
 
                 return session;
             }
@@ -148,7 +148,7 @@ namespace PingORM
         /// <param name="key"></param>
         public static void EndCurrentSession(string key) 
         {
-            ISession session = _sessionStorage.GetCurrent(key);
+            ISession session = SessionStorage.GetCurrent<ISession>(key);
 
             if (session != null && session.IsConnected)
                 session.Close();
@@ -159,7 +159,7 @@ namespace PingORM
         /// </summary>
         public static void EndAllSessions()
         {
-            foreach (ISession session in _sessionStorage.GetAll())
+            foreach (ISession session in SessionStorage.GetAll<ISession>())
             {
                 if (session != null && session.IsConnected)
                     session.Close();

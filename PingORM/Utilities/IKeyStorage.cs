@@ -9,46 +9,46 @@ namespace PingORM.Utilities
     /// <summary>
     /// Interface for a class that stores an NHibernate session.
     /// </summary>
-    public interface IKeyStorage<T> where T : class
+    public interface IKeyStorage
     {
         /// <summary>
         /// Gets the currently stored item for the specified key.
         /// </summary>
         /// <param name="key"></param>
-        T GetCurrent(string key);
+        T GetCurrent<T>(object key) where T : class;
 
         /// <summary>
         /// Stores the current item for the specified key.
         /// </summary>
         /// <param name="key"></param>
         /// <param name="session"></param>
-        void SetCurrent(string key, T item);
+        void SetCurrent(object key, object item);
 
         /// <summary>
         /// Gets all of the items stored.
         /// </summary>
         /// <returns></returns>
-        List<T> GetAll();
+        List<T> GetAll<T>() where T : class;
     }
 
     /// <summary>
     /// Class that stores an NHibernate session in a static variable.
     /// </summary>
-    public class StaticKeyStorage<T> : IKeyStorage<T> where T : class
+    public class StaticKeyStorage : IKeyStorage
     {
         /// <summary>
         /// The list of sessions associated with the available connection keys.
         /// </summary>
-        protected static Dictionary<string, T> _currentItems = new Dictionary<string, T>();
+        protected static Dictionary<object, object> _currentItems = new Dictionary<object, object>();
 
         /// <summary>
         /// Gets the current session for the specified key.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public T GetCurrent(string key)
+        public T GetCurrent<T>(object key) where T : class
         {
-            return _currentItems.ContainsKey(key) ? _currentItems[key] : null;
+            return _currentItems.ContainsKey(key) ? _currentItems[key] as T : null;
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace PingORM.Utilities
         /// </summary>
         /// <param name="key"></param>
         /// <param name="session"></param>
-        public void SetCurrent(string key, T item)
+        public void SetCurrent(object key, object item)
         {
             if (_currentItems.ContainsKey(key))
                 _currentItems[key] = item;
@@ -68,31 +68,31 @@ namespace PingORM.Utilities
         /// Gets all of the items stored.
         /// </summary>
         /// <returns></returns>
-        public List<T> GetAll()
+        public List<T> GetAll<T>() where T : class
         {
-            return _currentItems.Values.ToList();
+            return _currentItems.Values.Cast<T>().ToList();
         }
     }
 
     /// <summary>
     /// Stores a thread-static session.
     /// </summary>
-    public class ThreadKeyStorage<T> : IKeyStorage<T> where T : class
+    public class ThreadKeyStorage : IKeyStorage
     {
         /// <summary>
         /// The list of sessions associated with the available connection keys.
         /// </summary>
         [ThreadStatic]
-        protected static Dictionary<string, T> _currentItems = new Dictionary<string, T>();
+        protected static Dictionary<object, object> _currentItems = new Dictionary<object, object>();
 
         /// <summary>
         /// Gets the current session for the specified key.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public T GetCurrent(string key)
+        public T GetCurrent<T>(object key) where T : class
         {
-            return _currentItems.ContainsKey(key) ? _currentItems[key] : null;
+            return _currentItems.ContainsKey(key) ? _currentItems[key] as T : null;
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace PingORM.Utilities
         /// </summary>
         /// <param name="key"></param>
         /// <param name="session"></param>
-        public void SetCurrent(string key, T item)
+        public void SetCurrent(object key, object item)
         {
             if (_currentItems.ContainsKey(key))
                 _currentItems[key] = item;
@@ -112,29 +112,29 @@ namespace PingORM.Utilities
         /// Gets all of the items stored.
         /// </summary>
         /// <returns></returns>
-        public List<T> GetAll()
+        public List<T> GetAll<T>() where T : class
         {
-            return _currentItems.Values.ToList();
+            return _currentItems.Values.Cast<T>().ToList();
         }
     }
 
-    public class WebKeyStorage<T> : IKeyStorage<T> where T : class
+    public class WebKeyStorage : IKeyStorage
     {
-        public T GetCurrent(string key)
+        public T GetCurrent<T>(object key) where T : class
         {
-            return HttpContext.Current.Items[String.Format("{0}_{1}", typeof(T).Name, key)] as T;
+            return HttpContext.Current.Items[String.Format("CACHE_{0}", key.ToString())] as T;
         }
 
-        public void SetCurrent(string key, T item)
+        public void SetCurrent(object key, object item)
         {
-            HttpContext.Current.Items[String.Format("{0}_{1}", typeof(T).Name, key)] = item;
+            HttpContext.Current.Items[String.Format("CACHE_{0}", key.ToString())] = item;
         }
 
         /// <summary>
         /// Gets all of the items stored.
         /// </summary>
         /// <returns></returns>
-        public List<T> GetAll()
+        public List<T> GetAll<T>() where T : class
         {
             List<T> items = new List<T>();
             foreach (object value in HttpContext.Current.Items.Values)

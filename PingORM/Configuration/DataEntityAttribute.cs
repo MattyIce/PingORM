@@ -25,5 +25,10 @@ namespace PingORM.Configuration
         /// The name of the DB sequence that generates the Id for entities of this type.
         /// </summary>
         public string SequenceName { get; set; }
+
+        /// <summary>
+        /// If this is set to 'true' then entities of this type will not be cached locally.
+        /// </summary>
+        public bool DisableCaching { get; set; }
     }
 }
