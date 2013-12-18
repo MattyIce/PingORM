@@ -8,7 +8,7 @@ namespace PingORM
 {
     public interface IEntityAdapter<ENTITY> where ENTITY : class, new()
     {
-        ENTITY Get(object id);
+        ENTITY Get(object id, bool forUpdate = false);
         object Get(string entityName, object id);
         object Get(Type entityType, object id);
         QueryBuilder<ENTITY> Query();

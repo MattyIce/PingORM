@@ -65,9 +65,9 @@ namespace PingORM
         /// <param name="session"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static T Get<T>(ISession session, object id) where T : class, new()
+        public static T Get<T>(ISession session, object id, bool forUpdate = false) where T : class, new()
         {
-            return Get<T>(session, id, null);
+            return Get<T>(session, id, null, forUpdate);
         }
 
         /// <summary>
@@ -78,9 +78,9 @@ namespace PingORM
         /// <param name="id"></param>
         /// <param name="timestamp"></param>
         /// <returns></returns>
-        public static T Get<T>(ISession session, object id, object partitionKey) where T : class, new()
+        public static T Get<T>(ISession session, object id, object partitionKey, bool forUpdate = false) where T : class, new()
         {
-            return Get(typeof(T), session, id, partitionKey) as T;
+            return Get(typeof(T), session, id, partitionKey, forUpdate) as T;
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace PingORM
         /// <param name="id"></param>
         /// <param name="timestamp"></param>
         /// <returns></returns>
-        public static object Get(Type type, ISession session, object id, object partitionKey)
+        public static object Get(Type type, ISession session, object id, object partitionKey, bool forUpdate = false)
         {
             // Make sure the mappings have been loaded for this type.
             LoadMappings(type);
@@ -116,6 +116,9 @@ namespace PingORM
                 //SqlCommand selectCommand = new SqlCommand(mapping.GetExpression, (SqlConnection)session.Connection);
                 IDbCommand selectCommand = session.Connection.CreateCommand();
                 selectCommand.CommandText = mapping.GetExpression;
+
+                if (forUpdate)
+                    selectCommand.CommandText = String.Concat(selectCommand.CommandText, " FOR UPDATE");
 
                 // Get the primary key column(s).
                 List<ColumnMapping> idColumns = mapping.Columns.Where(c => c.IsPk).ToList();
