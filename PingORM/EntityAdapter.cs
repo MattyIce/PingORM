@@ -29,7 +29,7 @@ namespace PingORM
         /// <typeparam name="ENTITY"></typeparam>
         /// <param name="id"></param>
         /// <returns></returns>
-        public virtual ENTITY Get(object id) { return DataMapper.Get<ENTITY>(SessionFactory.GetCurrentSession(SessionKey), id); }
+        public virtual ENTITY Get(object id, bool forUpdate = false) { return DataMapper.Get<ENTITY>(SessionFactory.GetCurrentSession(SessionKey), id, forUpdate); }
 
         /// <summary>
         /// Gets an entity from a partitioned table in the db by its ID and partition key timestamp.
@@ -96,9 +96,9 @@ namespace PingORM
         /// <typeparam name="ENTITY"></typeparam>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static ENTITY Get<ENTITY>(object id) where ENTITY : class, new()
+        public static ENTITY Get<ENTITY>(object id, bool forUpdate = false) where ENTITY : class, new()
         {
-            return GetAdapter<ENTITY>().Get(id);
+            return GetAdapter<ENTITY>().Get(id, forUpdate);
         }
 
         /// <summary>
