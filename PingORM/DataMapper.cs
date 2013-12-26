@@ -45,16 +45,23 @@ namespace PingORM
             if (_mappings.ContainsKey(type))
                 return;
 
-            object[] attributes = type.GetCustomAttributes(typeof(DataEntityAttribute), false);
-            if (attributes.Length > 0)
+            lock (_mappings)
             {
-                DataEntityAttribute attribute = attributes[0] as DataEntityAttribute;
+                // Check if this mapping has already been loaded.
+                if (_mappings.ContainsKey(type))
+                    return;
 
-                if (attribute == null || String.IsNullOrEmpty(attribute.TableName))
-                    throw new Exception(String.Format("Cannot load mappings for type [{0}].", type.FullName));
+                object[] attributes = type.GetCustomAttributes(typeof(DataEntityAttribute), false);
+                if (attributes.Length > 0)
+                {
+                    DataEntityAttribute attribute = attributes[0] as DataEntityAttribute;
 
-                TableMapping mapping = new TableMapping(attribute, type);
-                _mappings.Add(type, mapping);
+                    if (attribute == null || String.IsNullOrEmpty(attribute.TableName))
+                        throw new Exception(String.Format("Cannot load mappings for type [{0}].", type.FullName));
+
+                    TableMapping mapping = new TableMapping(attribute, type);
+                    _mappings.Add(type, mapping);
+                }
             }
         }
 
@@ -141,11 +148,15 @@ namespace PingORM
 
                 LogCommand(selectCommand);
 
+                object entity = null;
+
                 using (IDataReader reader = selectCommand.ExecuteReader())
                 {
                     if (reader.Read())
-                        return FromDb(type, reader);
+                        entity = FromDb(type, reader);
                 }
+
+                return entity;
             }
             catch (Exception ex) { Log.Error("DataMapper.Get threw an exception.", ex); }
 

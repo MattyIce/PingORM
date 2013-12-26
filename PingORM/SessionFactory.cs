@@ -180,8 +180,6 @@ namespace PingORM
 
         #region Transactions
 
-        private static Dictionary<string, Transaction> _transactions = new Dictionary<string, Transaction>();
-
         /// <summary>
         /// Gets an instance of an active NHibernate transaction.
         /// </summary>
@@ -189,17 +187,16 @@ namespace PingORM
         /// <returns></returns>
         public static Transaction GetTransaction(string key)
         {
-            if (_transactions.ContainsKey(key) && _transactions[key].IsActive)
-                return _transactions[key];
+            string transKey = String.Format("TRANS_{0}", key);
+            Transaction transaction = SessionStorage.GetCurrent<Transaction>(transKey);
 
-            ISession session = SessionFactory.GetCurrentSession(key);
+            if (transaction != null && transaction.IsActive)
+                return new Transaction();
 
-            if (_transactions.ContainsKey(key))
-                _transactions[key] = new Transaction(session.Connection);
-            else
-                _transactions.Add(key, new Transaction(session.Connection));
+            transaction = new Transaction(SessionFactory.GetCurrentSession(key).Connection);
+            SessionStorage.SetCurrent(transKey, transaction);
 
-            return _transactions[key];
+            return transaction;
         }
 
         /// <summary>
@@ -226,7 +223,6 @@ namespace PingORM
 
             return transactions;
         }
-
 
         /// <summary>
         /// Gets an instance of a database transaction for each of the specified entity types.
