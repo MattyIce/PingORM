@@ -561,9 +561,9 @@ namespace PingORM
                 int i = 0;
                 foreach (object val in (IEnumerable)value)
                 {
-                    string paramName = String.IsNullOrEmpty(name) ? DataMapper.ParamName(Parameters.Count, true) : DataMapper.ParamName(String.Format("{0}{1}", name, i++));
+                    string paramName = String.IsNullOrEmpty(name) ? DataMapper.ParamName(Parameters.Count, true) : DataMapper.ParamName(String.Format("{0}{1}", name, i));
 
-                    if (i > 1)
+                    if (++i > 1)
                         sb.Append(",");
 
                     sb.Append(paramName);
