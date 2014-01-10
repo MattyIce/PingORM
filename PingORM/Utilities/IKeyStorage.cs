@@ -70,7 +70,13 @@ namespace PingORM.Utilities
         /// <returns></returns>
         public List<T> GetAll<T>() where T : class
         {
-            return _currentItems.Values.Cast<T>().ToList();
+            List<T> items = new List<T>();
+            foreach (object value in _currentItems.Values)
+            {
+                if (value as T != null)
+                    items.Add(value as T);
+            }
+            return items;
         }
     }
 
@@ -114,7 +120,13 @@ namespace PingORM.Utilities
         /// <returns></returns>
         public List<T> GetAll<T>() where T : class
         {
-            return _currentItems.Values.Cast<T>().ToList();
+            List<T> items = new List<T>();
+            foreach (object value in _currentItems.Values)
+            {
+                if (value as T != null)
+                    items.Add(value as T);
+            }
+            return items;
         }
     }
 

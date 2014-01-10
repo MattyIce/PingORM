@@ -28,6 +28,15 @@ namespace PingORM
         public static void Initialize() { Initialize(new StaticKeyStorage()); }
 
         /// <summary>
+        /// Initialize the session factory from the connectionSettings configuration element using static session storage for a specific data provider.
+        /// </summary>
+        public static void Initialize(DataProvider provider)
+        {
+            Provider = provider;
+            Initialize();
+        }
+
+        /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element using web session storage.
         /// </summary>
         public static void InitializeWeb() { Initialize(new WebKeyStorage()); }
