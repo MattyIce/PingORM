@@ -108,7 +108,7 @@ namespace PingORM
                 TableMapping mapping = _mappings[type];
 
                 // If caching is enabled for this entity type, check if it is in cache already.
-                if (mapping.CachingEnabled)
+                if (mapping.CachingEnabled && SessionFactory.CachingEnabled)
                 {
                     object cachedEntity = GetCachedEntity(type, id);
 
@@ -189,28 +189,33 @@ namespace PingORM
                 throw new NotSupportedException("Getting the Id of a multi-column PK object is not supported in this version.");
         }
 
+        public static string GetIdString(object entity)
+        {
+            return GetIdString(entity.GetType(), entity);
+        }
+
         /// <summary>
         /// Gets a string identifier of the specified entity based upon the Primary Key defined in the mapping.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public static string GetIdString(object entity)
+        public static string GetIdString(Type type, object entity)
         {
             // Make sure the mappings have been loaded for this type.
-            LoadMappings(entity.GetType());
+            LoadMappings(type);
 
-            TableMapping mapping = _mappings[entity.GetType()];
+            TableMapping mapping = _mappings[type];
 
             // Get the primary key column(s).
             List<ColumnMapping> idColumns = mapping.Columns.Where(c => c.IsPk).ToList();
 
             // Check if we have multiple PKs or just one.
             if (idColumns.Count == 1)
-                return String.Format("{0}:{1}", entity.GetType().Name, idColumns[0].PropertyInfo.GetValue(entity));
+                return String.Format("{0}:{1}", type.Name, (entity.GetType().IsValueType || entity is String) ? entity : idColumns[0].PropertyInfo.GetValue(entity));
             else
             {
-                StringBuilder retVal = new StringBuilder(entity.GetType().Name);
+                StringBuilder retVal = new StringBuilder(type.Name);
 
                 foreach (ColumnMapping idColumn in idColumns)
                     retVal.Append(":").Append(idColumn.PropertyInfo.GetValue(entity));
@@ -244,7 +249,7 @@ namespace PingORM
                 catch (Exception ex) { Log.Error(String.Format("DataMapper.FromDb threw an exception getting column [{0}].", column.ColumnName), ex); }
             }
 
-            if(mapping.CachingEnabled)
+            if (mapping.CachingEnabled && SessionFactory.CachingEnabled)
                 CacheEntity(record);
 
             return record;
@@ -378,7 +383,7 @@ namespace PingORM
 
         internal static object GetCachedEntity(Type type, object id)
         {
-            return SessionFactory.SessionStorage.GetCurrent<object>(String.Format("{0}:{1}", type.Name, id));
+            return SessionFactory.SessionStorage.GetCurrent<object>(GetIdString(type, id));
         }
 
         internal static void ClearCachedEntity(object entity)
@@ -441,7 +446,7 @@ namespace PingORM
                 LogCommand(updateCommand);
                 int rows = updateCommand.ExecuteNonQuery();
 
-                if (rows > 0 && mapping.CachingEnabled)
+                if (rows > 0 && mapping.CachingEnabled && SessionFactory.CachingEnabled)
                     CacheEntity(entity);
 
                 return rows;
@@ -475,7 +480,7 @@ namespace PingORM
                 LogCommand(deleteCommand);
                 int rows = deleteCommand.ExecuteNonQuery();
 
-                if (rows > 0 && mapping.CachingEnabled)
+                if (rows > 0 && mapping.CachingEnabled && SessionFactory.CachingEnabled)
                     ClearCachedEntity(entity);
 
                 return rows;

@@ -21,6 +21,7 @@ namespace PingORM
         static log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         internal static IKeyStorage SessionStorage;
         internal static DataProvider Provider = DataProvider.Postgres;
+        internal static bool CachingEnabled = true;
 
         /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element.
@@ -30,9 +31,10 @@ namespace PingORM
         /// <summary>
         /// Initialize the session factory from the connectionSettings configuration element using static session storage for a specific data provider.
         /// </summary>
-        public static void Initialize(DataProvider provider)
+        public static void Initialize(DataProvider provider, bool cachingEnabled = true)
         {
             Provider = provider;
+            CachingEnabled = cachingEnabled;
             Initialize();
         }
 
