@@ -7,7 +7,7 @@ using PingORM.Configuration;
 
 namespace PingORM.UnitTests.Entities
 {
-    [DataEntity(Key = "tests", TableName = "users", SequenceName = "seq_users")]
+    [DataEntity(Key = "tests", TableName = "users", SequenceName = "seq_users", DisableCaching = true)]
     public class User
     {
         [Column(Name = "id", IsPrimaryKey = true)]

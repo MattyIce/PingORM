@@ -28,7 +28,7 @@ namespace PingORM.UnitTests
             SessionFactory.StartNewSession(type);
 
             // Read the entity that was just inserted from the db.
-            var fromDb = EntityAdapter.Get(type, DataMapper.GetId(entity));
+            var fromDb = new TestEntityAdapter().Get(type, DataMapper.GetId(entity));
             Assert.IsNotNull(fromDb);
 
             // Test that all of the property values are equal in the original entity and the one returned from the db.
@@ -58,7 +58,7 @@ namespace PingORM.UnitTests
             SessionFactory.StartNewSession(type);
 
             // Read the entity that was just inserted from the db.
-            var fromDb = EntityAdapter.Get(type, DataMapper.GetId(entity));
+            var fromDb = new TestEntityAdapter().Get(type, DataMapper.GetId(entity));
             Assert.IsNotNull(fromDb);
 
             // Test that all of the property values are equal in the original entity and the one returned from the db.
@@ -84,7 +84,7 @@ namespace PingORM.UnitTests
             SessionFactory.StartNewSession(type);
 
             // Read the entity that was just inserted from the db.
-            var fromDb = EntityAdapter.Get(type, DataMapper.GetId(entity));
+            var fromDb = new TestEntityAdapter().Get(type, DataMapper.GetId(entity));
             Assert.IsNull(fromDb);
         }
 

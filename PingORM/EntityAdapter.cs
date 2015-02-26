@@ -11,7 +11,7 @@ namespace PingORM
     /// Generically typed class that provides the interface that should be used to interact with the data persistence layer (currently the Postgres database).
     /// </summary>
     /// <typeparam name="ENTITY"></typeparam>
-    public class EntityAdapter<ENTITY> : EntityAdapter,  IEntityUpdater<ENTITY> where ENTITY : class, new()
+    public class EntityAdapter<ENTITY> : EntityAdapter, IEntityAdapter<ENTITY> where ENTITY : class, new()
     {
         /// <summary>
         /// The database session key for the ENTITY type.
@@ -52,9 +52,9 @@ namespace PingORM
         /// This method inserts a new entity into the database.
         /// </summary>
         /// <param name="entity"></param>
-        public virtual int Insert(ENTITY entity)
+        public virtual ENTITY Insert(ENTITY entity)
         {
-            return InsertInternal(entity);
+            return (InsertInternal(entity) == 0) ? null : entity;
         }
 
         /// <summary>
@@ -75,13 +75,6 @@ namespace PingORM
         {
             DeleteInternal(entity);
         }
-
-        /// <summary>
-        /// Gets the entity adapter that has been registered for the specified type.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <returns></returns>
-        public static EntityAdapter<ENTITY> GetAdapter() { return EntityAdapter.GetAdapter<ENTITY>(); }
     }
 
     /// <summary>
@@ -90,37 +83,13 @@ namespace PingORM
     public abstract class EntityAdapter
     {
         /// <summary>
-        /// Stronly typed method to get an entity by Id. If this entity has already been loaded
-        /// it will be cached by NHibernate so it will not need to go to the database to load it again.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public static ENTITY Get<ENTITY>(object id, bool forUpdate = false) where ENTITY : class, new()
-        {
-            return GetAdapter<ENTITY>().Get(id, forUpdate);
-        }
-
-        /// <summary>
-        /// Gets an entity from a partitioned table in the db by its ID and partition key timestamp.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <param name="id"></param>
-        /// <param name="partitionKey"></param>
-        /// <returns></returns>
-        public static ENTITY Get<ENTITY>(object id, object partitionKey) where ENTITY : class, new()
-        {
-            return GetAdapter<ENTITY>().Get(id, partitionKey);
-        }
-
-        /// <summary>
         /// Weakly typed method to get an entity by Id. If this entity has already been loaded
         /// it will be cached by NHibernate so it will not need to go to the database to load it again.
         /// </summary>
         /// <param name="entityName"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static object Get(string entityName, object id) { return Get(Type.GetType(entityName), id); }
+        public object Get(string entityName, object id) { return Get(Type.GetType(entityName), id); }
 
         /// <summary>
         /// Weakly typed method to get an entity by Id.
@@ -128,7 +97,7 @@ namespace PingORM
         /// <param name="entityName"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static object Get(Type entityType, object id) { return Get(entityType, id, null); }
+        public object Get(Type entityType, object id) { return Get(entityType, id, null); }
 
         /// <summary>
         /// Weakly typed method to get an entity by Id and partition key.
@@ -136,18 +105,20 @@ namespace PingORM
         /// <param name="entityName"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static object Get(Type entityType, object id, object partitionKey)
+        public object Get(Type entityType, object id, object partitionKey)
         {
             return DataMapper.Get(entityType, SessionFactory.GetCurrentSession(entityType), id, partitionKey);
         }
 
         /// <summary>
-        /// Gets a QueryBuilder instance for this entity in order to query it.
+        /// Gets a QueryBuilder instance for this entity type in order to query it.
+        /// I made this static so it will work with static compiled queries. Not sure how else to make that work.
         /// </summary>
+        /// <typeparam name="ENTITY"></typeparam>
         /// <returns></returns>
         public static QueryBuilder<ENTITY> Query<ENTITY>() where ENTITY : class, new()
         {
-            return GetAdapter<ENTITY>().Query();
+            return new QueryBuilder<ENTITY>();
         }
 
         /// <summary>
@@ -213,57 +184,41 @@ namespace PingORM
         }
 
         /// <summary>
-        /// Inserts a new entity into the database.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <param name="entity"></param>
-        public static ENTITY Insert<ENTITY>(ENTITY entity) where ENTITY : class, new()
-        {
-            return (GetUpdater<ENTITY>().Insert(entity) == 0) ? null : entity;
-        }
-
-        /// <summary>
-        /// Inserts a new entity into the database.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <param name="entity"></param>
-        public static void Update<ENTITY>(ENTITY entity) where ENTITY : class, new()
-        {
-            GetUpdater<ENTITY>().Update(entity);
-        }
-
-        /// <summary>
-        /// Inserts a new entity into the database.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <param name="entity"></param>
-        public static void Delete<ENTITY>(ENTITY entity) where ENTITY : class, new()
-        {
-            GetUpdater<ENTITY>().Delete(entity);
-        }
-
-        /// <summary>
-        /// Register adapter classes in the business objects assembly.
-        /// </summary>
-        /// <param name="assembly">The assembly containing the business object adapters.</param>
-        public static void RegisterAdapters(Assembly assembly)
-        {
-            // Get all of the types that implement IEntityAdapter.
-            foreach (Type type in assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(EntityAdapter))))
-            {
-                // Register types that have the EntityAdapter attribute.
-                foreach (EntityAdapterAttribute attribute in type.GetCustomAttributes(typeof(EntityAdapterAttribute), false))
-                {
-                    EntityAdapter adapter = Activator.CreateInstance(type) as EntityAdapter;
-                    RegisterAdapter(attribute.EntityType, adapter);
-                }
-            }
-        }
-
-        /// <summary>
         /// The entity tracker instance to use to track which entities have been inserted or deleted from the database.
         /// </summary>
         protected static IEntityTracker EntityTracker { get; set; }
+
+        /*
+     * I've decided not to allow this since it will allow anyone to easily modify entities without using the adapter specific to that entity.
+     * For example, say I make a custom entity adapter for the User object called NoMattsEntityAdapter<User> which has custom code to check if a user's name is "Matt" and 
+     * not let them in and I register that in the IoC to be what is used for any instances of IEntityAdapter<User>. Now if I allow this base IEntityAdapter interface/class
+     * to be used then people could register a user named "Matt" and get around the check that was implemented.
+     * 
+        public virtual ENTITY Get<ENTITY>(object id, bool forUpdate = false) where ENTITY : class, new()
+        {
+            return DataMapper.Get<ENTITY>(SessionFactory.GetCurrentSession(typeof(ENTITY)), id, forUpdate);
+        }
+
+        public virtual QueryBuilder<ENTITY> Query<ENTITY>() where ENTITY : class, new()
+        {
+            return new QueryBuilder<ENTITY>();
+        }
+
+        public virtual ENTITY Insert<ENTITY>(ENTITY entity) where ENTITY : class, new()
+        {
+            return (InsertInternal(entity) == 0) ? null : entity;
+        }
+
+        public virtual void Update<ENTITY>(ENTITY entity) where ENTITY : class, new()
+        {
+            UpdateInternal(entity);
+        }
+
+        public virtual void Delete<ENTITY>(ENTITY entity) where ENTITY : class, new()
+        {
+            DeleteInternal(entity);
+        }
+         * */
 
         /// <summary>
         /// Sets the entity tracker instance to use with this entity adapter.
@@ -273,47 +228,6 @@ namespace PingORM
         {
             EntityTracker = entityTracker;
             Transaction.SetEntityTracker(entityTracker);
-        }
-
-        /// <summary>
-        /// List of entity adapter instances by entity type.
-        /// </summary>
-        private static Dictionary<Type, EntityAdapter> _adapters = new Dictionary<Type, EntityAdapter>();
-
-        /// <summary>
-        /// Registers an adapter for an entity type.
-        /// </summary>
-        /// <param name="entityType"></param>
-        /// <param name="adapter"></param>
-        public static void RegisterAdapter(Type entityType, EntityAdapter adapter)
-        {
-            // Make sure no adapter is already registered for this entity type.
-            if (_adapters.ContainsKey(entityType))
-                throw new Exception(String.Format("An adapter has already been registered for entity type [{0}].", entityType.FullName));
-
-            _adapters.Add(entityType, adapter);
-        }
-
-        /// <summary>
-        /// Gets the entity adapter that has been registered for the specified type.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <returns></returns>
-        protected static EntityAdapter<ENTITY> GetAdapter<ENTITY>() where ENTITY : class, new()
-        {
-            // Return the adapter registered for the specified type, or the default adapter if none is registered.
-            return _adapters.ContainsKey(typeof(ENTITY)) ? _adapters[typeof(ENTITY)] as EntityAdapter<ENTITY> : new EntityAdapter<ENTITY>();
-        }
-
-        /// <summary>
-        /// Gets the entity adapter that has been registered for the specified type.
-        /// </summary>
-        /// <typeparam name="ENTITY"></typeparam>
-        /// <returns></returns>
-        protected static IEntityUpdater<ENTITY> GetUpdater<ENTITY>() where ENTITY : class, new()
-        {
-            // Return the adapter registered for the specified type, or the default adapter if none is registered.
-            return _adapters.ContainsKey(typeof(ENTITY)) ? _adapters[typeof(ENTITY)] as IEntityUpdater<ENTITY> : new EntityAdapter<ENTITY>();
         }
     }
 }

@@ -14,12 +14,19 @@ namespace PingORM.UnitTests
     [TestFixture]
     public class CompiledQueryTestFixture : TestFixtureBase
     {
+        public IEntityAdapter<User> UserEntityAdapter { get; set; }
+
+        public CompiledQueryTestFixture()
+        {
+            UserEntityAdapter = new EntityAdapter<User>();
+        }
+
         [Test]
         public void SelectTest()
         {
-            EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now });
+            UserEntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now });
 
-            List<User> users = EntityAdapter.Query<User>().ToList();
+            List<User> users = UserEntityAdapter.Query().ToList();
 
             Assert.AreEqual(1, users.Count);
         }
@@ -32,12 +39,12 @@ namespace PingORM.UnitTests
         [Test]
         public void UpdateTest()
         {
-            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 });
+            User user = UserEntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 });
 
             int count = updateTestQuery(user.Id, 4).ExecuteNonQuery();
 
             Assert.AreEqual(1, count);
-            Assert.AreEqual(user.NumLogins + 4, EntityAdapter.Get<User>(user.Id).NumLogins);
+            Assert.AreEqual(user.NumLogins + 4, UserEntityAdapter.Get(user.Id).NumLogins);
         }
 
         public static Func<long[], QueryBuilder<User>> listContainsTestQuery = QueryBuilder<User>.Compile<long[]>(
@@ -46,10 +53,10 @@ namespace PingORM.UnitTests
         [Test]
         public void ListContainsTest()
         {
-            User user = EntityAdapter.Insert(new User { FirstName = "Eric", LastName = "Cartman", JoinDate = DateTime.Now, NumLogins = 2 });
-            User user2 = EntityAdapter.Insert(new User { FirstName = "Stan", LastName = "Marsh", JoinDate = DateTime.Now, NumLogins = 1 });
-            User user3 = EntityAdapter.Insert(new User { FirstName = "Kyle", LastName = "Broflovsky", JoinDate = DateTime.Now, NumLogins = 3 });
-            User user4 = EntityAdapter.Insert(new User { FirstName = "Kenny", LastName = "McCormick", JoinDate = DateTime.Now, NumLogins = 0 });
+            User user = UserEntityAdapter.Insert(new User { FirstName = "Eric", LastName = "Cartman", JoinDate = DateTime.Now, NumLogins = 2 });
+            User user2 = UserEntityAdapter.Insert(new User { FirstName = "Stan", LastName = "Marsh", JoinDate = DateTime.Now, NumLogins = 1 });
+            User user3 = UserEntityAdapter.Insert(new User { FirstName = "Kyle", LastName = "Broflovsky", JoinDate = DateTime.Now, NumLogins = 3 });
+            User user4 = UserEntityAdapter.Insert(new User { FirstName = "Kenny", LastName = "McCormick", JoinDate = DateTime.Now, NumLogins = 0 });
 
             List<User> users = listContainsTestQuery(new long[] { user2.Id, user4.Id }).ToList();
 
@@ -64,10 +71,10 @@ namespace PingORM.UnitTests
         [Test]
         public void StringContainsTest()
         {
-            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 });
-            User user2 = EntityAdapter.Insert(new User { FirstName = "Dan", LastName = "Cohen", JoinDate = DateTime.Now, NumLogins = 3 });
-            User user3 = EntityAdapter.Insert(new User { FirstName = "Adam", LastName = "Rosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
-            User user4 = EntityAdapter.Insert(new User { FirstName = "Bob", LastName = "Schmarosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+            User user = UserEntityAdapter.Insert(new User { FirstName = "Matt", LastName = "Rosen", JoinDate = DateTime.Now, NumLogins = 2 });
+            User user2 = UserEntityAdapter.Insert(new User { FirstName = "Dan", LastName = "Cohen", JoinDate = DateTime.Now, NumLogins = 3 });
+            User user3 = UserEntityAdapter.Insert(new User { FirstName = "Adam", LastName = "Rosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+            User user4 = UserEntityAdapter.Insert(new User { FirstName = "Bob", LastName = "Schmarosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
 
             List<User> users = stringContainsTestQuery("Rosen").ToList();
 
@@ -83,10 +90,10 @@ namespace PingORM.UnitTests
         [Test]
         public void StringStartsWithTest()
         {
-            User user = EntityAdapter.Insert(new User { FirstName = "Matt", LastName = "rosen", JoinDate = DateTime.Now, NumLogins = 2 });
-            User user2 = EntityAdapter.Insert(new User { FirstName = "Dan", LastName = "Cohen", JoinDate = DateTime.Now, NumLogins = 3 });
-            User user3 = EntityAdapter.Insert(new User { FirstName = "Adam", LastName = "Rosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
-            User user4 = EntityAdapter.Insert(new User { FirstName = "Bob", LastName = "Schmarosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+            User user = UserEntityAdapter.Insert(new User { FirstName = "Matt", LastName = "rosen", JoinDate = DateTime.Now, NumLogins = 2 });
+            User user2 = UserEntityAdapter.Insert(new User { FirstName = "Dan", LastName = "Cohen", JoinDate = DateTime.Now, NumLogins = 3 });
+            User user3 = UserEntityAdapter.Insert(new User { FirstName = "Adam", LastName = "Rosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
+            User user4 = UserEntityAdapter.Insert(new User { FirstName = "Bob", LastName = "Schmarosenthal", JoinDate = DateTime.Now, NumLogins = 1 });
 
             List<User> users = stringStartsWithTestQuery("Rosen").ToList();
 

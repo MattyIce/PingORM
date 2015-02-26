@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingORM", "PingORM\PingORM.csproj", "{AAA8EEF7-1844-465E-90A0-E847D3D7AD85}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingORM.UnitTests", "PingORM.UnitTests\PingORM.UnitTests.csproj", "{79BC33C6-1DF9-4424-B3E2-B51FF96D4472}"
@@ -11,8 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{C903D5
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingORM.Redis", "PingORM.Redis\PingORM.Redis.csproj", "{5665CAA9-41D5-4BFC-BCBF-1CA500C066EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,10 +28,6 @@ Global
 		{79BC33C6-1DF9-4424-B3E2-B51FF96D4472}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79BC33C6-1DF9-4424-B3E2-B51FF96D4472}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79BC33C6-1DF9-4424-B3E2-B51FF96D4472}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5665CAA9-41D5-4BFC-BCBF-1CA500C066EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5665CAA9-41D5-4BFC-BCBF-1CA500C066EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5665CAA9-41D5-4BFC-BCBF-1CA500C066EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5665CAA9-41D5-4BFC-BCBF-1CA500C066EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
